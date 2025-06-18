@@ -1,0 +1,111 @@
+{
+  "@@locale": "en",
+  "userRegistration": "User Registration",
+  "@userRegistration": {
+    "description": "Title for user registration screen"
+  },
+  "createNewAccount": "Create New Account",
+  "@createNewAccount": {
+    "description": "Title for creating new account"
+  },
+  "username": "Username",
+  "@username": {
+    "description": "Label for username field"
+  },
+  "email": "Email",
+  "@email": {
+    "description": "Label for email field"
+  },
+  "password": "Password",
+  "@password": {
+    "description": "Label for password field"
+  },
+  "confirmPassword": "Confirm Password",
+  "@confirmPassword": {
+    "description": "Label for confirm password field"
+  },
+  "captcha": "Captcha",
+  "@captcha": {
+    "description": "Label for captcha field"
+  },
+  "register": "Register",
+  "@register": {
+    "description": "Register button text"
+  },
+  "backToLogin": "Back to Login",
+  "@backToLogin": {
+    "description": "Back to login link text"
+  },
+  "alreadyHaveAccount": "Already have an account?",
+  "@alreadyHaveAccount": {
+    "description": "Text for existing account prompt"
+  },
+  "clickToRefreshCaptcha": "Click image to refresh captcha",
+  "@clickToRefreshCaptcha": {
+    "description": "Hint text for captcha refresh"
+  },
+  "pleaseEnterUsername": "Please enter username",
+  "@pleaseEnterUsername": {
+    "description": "Validation message for empty username"
+  },
+  "usernameTooShort": "Username must be at least 3 characters",
+  "@usernameTooShort": {
+    "description": "Validation message for short username"
+  },
+  "pleaseEnterEmail": "Please enter email",
+  "@pleaseEnterEmail": {
+    "description": "Validation message for empty email"
+  },
+  "invalidEmail": "Please enter a valid email address",
+  "@invalidEmail": {
+    "description": "Validation message for invalid email"
+  },
+  "pleaseEnterPassword": "Please enter password",
+  "@pleaseEnterPassword": {
+    "description": "Validation message for empty password"
+  },
+  "passwordTooShort": "Password must be at least 6 characters",
+  "@passwordTooShort": {
+    "description": "Validation message for short password"
+  },
+  "pleaseConfirmPassword": "Please confirm password",
+  "@pleaseConfirmPassword": {
+    "description": "Validation message for empty confirm password"
+  },
+  "passwordsDoNotMatch": "Passwords do not match",
+  "@passwordsDoNotMatch": {
+    "description": "Validation message for mismatched passwords"
+  },
+  "pleaseEnterCaptcha": "Please enter captcha",
+  "@pleaseEnterCaptcha": {
+    "description": "Validation message for empty captcha"
+  },
+  "registrationFailed": "Registration failed, please check your input or captcha",
+  "@registrationFailed": {
+    "description": "Error message for registration failure"
+  },
+  "appTitle": "Xiaozhi Manager",
+  "@appTitle": {
+    "description": "App title"
+  },
+  "welcomeBack": "Welcome Back",
+  "@welcomeBack": {
+    "description": "Welcome message on login screen"
+  },
+  "login": "Login",
+  "@login": {
+    "description": "Login button text"
+  },
+  "noAccountYet": "Don't have an account yet?",
+  "@noAccountYet": {
+    "description": "Text for new user prompt"
+  },
+  "registerNow": "Register Now",
+  "@registerNow": {
+    "description": "Register now link text"
+  },
+  "loginFailed": "Login failed, please check your username and password",
+  "@loginFailed": {
+    "description": "Error message for login failure"
+  }
+} 
