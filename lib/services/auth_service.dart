@@ -1,86 +1,65 @@
 import 'dart:convert';
-import 'dart:math';
 import 'dart:typed_data';
-import 'dart:ui' as ui;
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../config/app_config.dart';
 
 class AuthService extends ChangeNotifier {
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   bool _isLoading = false;
   String? _currentUser;
   String? _token;
-  String? _captchaText;
+  String? _currentUuid;
 
   bool get isLoading => _isLoading;
   String? get currentUser => _currentUser;
   String? get token => _token;
   bool get isLoggedIn => _token != null;
+  String? get currentUuid => _currentUuid;
 
-  // 模拟API基础URL
-  static const String baseUrl = 'https://api.xiaozhi.com';
+  // 生成UUID
+  String _generateUuid() {
+    final random = Random();
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    return String.fromCharCodes(
+      Iterable.generate(32, (_) => chars.codeUnitAt(random.nextInt(chars.length))),
+    );
+  }
 
   // 生成图片验证码
   Future<Uint8List> generateCaptcha() async {
-    const String chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    final Random random = Random();
-    _captchaText = String.fromCharCodes(
-      Iterable.generate(4, (_) => chars.codeUnitAt(random.nextInt(chars.length))),
-    );
+    _currentUuid = _generateUuid();
+    _isLoading = true;
+    notifyListeners();
 
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
-    final size = const Size(120, 40);
-    final paint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
+    try {
+      // 从服务端获取验证码图片
+      final response = await http.get(
+        Uri.parse('${AppConfig.baseUrl}/xiaozhi/user/captcha?uuid=$_currentUuid'),
+        headers: {'Content-Type': 'application/json'},
+      ).timeout(AppConfig.apiTimeout);
 
-    // 绘制背景
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
-
-    // 绘制干扰线
-    for (int i = 0; i < 5; i++) {
-      final linePaint = Paint()
-        ..color = Colors.grey[300]!
-        ..strokeWidth = 1;
-      canvas.drawLine(
-        Offset(random.nextDouble() * size.width, random.nextDouble() * size.height),
-        Offset(random.nextDouble() * size.width, random.nextDouble() * size.height),
-        linePaint,
-      );
+      if (response.statusCode == 200) {
+        _isLoading = false;
+        notifyListeners();
+        return response.bodyBytes;
+      } else {
+        throw Exception('获取验证码失败: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('获取验证码错误: $e');
+      _isLoading = false;
+      notifyListeners();
+      rethrow;
     }
-
-    // 绘制验证码文字
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: _captchaText,
-        style: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: Colors.black87,
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      Offset(
-        (size.width - textPainter.width) / 2,
-        (size.height - textPainter.height) / 2,
-      ),
-    );
-
-    final picture = recorder.endRecording();
-    final image = await picture.toImage(120, 40);
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    return byteData!.buffer.asUint8List();
   }
 
-  // 验证验证码
+  // 验证验证码（现在由服务端校验）
   bool verifyCaptcha(String input) {
-    return _captchaText?.toUpperCase() == input.toUpperCase();
+    // 客户端不再进行验证码校验，由服务端处理
+    return input.isNotEmpty;
   }
 
   // 用户注册
@@ -90,7 +69,8 @@ class AuthService extends ChangeNotifier {
     required String email,
     required String captcha,
   }) async {
-    if (!verifyCaptcha(captcha)) {
+    if (_currentUuid == null) {
+      print('请先生成验证码');
       return false;
     }
 
@@ -98,16 +78,18 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 模拟API调用
+      // 注册时发送验证码和UUID到服务端进行校验
       final response = await http.post(
-        Uri.parse('$baseUrl/register'),
+        Uri.parse('${AppConfig.baseUrl}/xiaozhi/user/register'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'username': username,
           'password': password,
           'email': email,
+          'captcha': captcha,
+          'uuid': _currentUuid,
         }),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(AppConfig.apiTimeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -118,6 +100,10 @@ class AuthService extends ChangeNotifier {
         _isLoading = false;
         notifyListeners();
         return true;
+      } else {
+        // 处理服务端返回的错误信息
+        final errorData = json.decode(response.body);
+        print('注册失败: ${errorData['message'] ?? '未知错误'}');
       }
     } catch (e) {
       print('注册错误: $e');
@@ -137,15 +123,15 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 模拟API调用
+      // 登录API调用
       final response = await http.post(
-        Uri.parse('$baseUrl/login'),
+        Uri.parse('${AppConfig.baseUrl}/xiaozhi/user/login'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'username': username,
           'password': password,
         }),
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(AppConfig.apiTimeout);
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -156,6 +142,10 @@ class AuthService extends ChangeNotifier {
         _isLoading = false;
         notifyListeners();
         return true;
+      } else {
+        // 处理服务端返回的错误信息
+        final errorData = json.decode(response.body);
+        print('登录失败: ${errorData['message'] ?? '未知错误'}');
       }
     } catch (e) {
       print('登录错误: $e');
