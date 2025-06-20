@@ -5,7 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/app_config.dart';
-
+/**
+  1. 生成UUID
+  2. 生成图片验证码
+  3. 注册用户
+  4. 登录用户
+  5. 登出用户
+  6. 检查登录状态
+ */
 class AuthService extends ChangeNotifier {
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   bool _isLoading = false;
@@ -29,7 +36,7 @@ class AuthService extends ChangeNotifier {
   }
 
   // 生成图片验证码
-  Future<Uint8List> generateCaptcha() async {
+  Future<Uint8List> generateCaptcha({required String getCaptchaFailed}) async {
     _currentUuid = _generateUuid();
     _isLoading = true;
     notifyListeners();
@@ -41,12 +48,12 @@ class AuthService extends ChangeNotifier {
         headers: {'Content-Type': 'application/json'},
       ).timeout(AppConfig.apiTimeout);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && response.bodyBytes.isNotEmpty) {
         _isLoading = false;
         notifyListeners();
         return response.bodyBytes;
       } else {
-        throw Exception('获取验证码失败: ${response.statusCode}');
+        throw Exception('$getCaptchaFailed: ${response.statusCode}');
       }
     } catch (e) {
       print('获取验证码错误: $e');
@@ -56,22 +63,27 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  // 验证验证码（现在由服务端校验）
-  bool verifyCaptcha(String input) {
-    // 客户端不再进行验证码校验，由服务端处理
-    return input.isNotEmpty;
+  // 客户端验证码格式检查（可选使用）
+  bool validateCaptchaFormat(String input) {
+    // 基本格式验证：非空且长度合理
+    return input.isNotEmpty && input.length >= 4 && input.length <= 8;
   }
 
   // 用户注册
-  Future<bool> register({
+  Future<Map<String, dynamic>> register({
     required String username,
     required String password,
-    required String email,
     required String captcha,
+    required String pleaseGenerateCaptchaFirst,
+    required String registrationSuccess,
+    required String networkError,
+    required String registrationFailedGeneric,
   }) async {
     if (_currentUuid == null) {
-      print('请先生成验证码');
-      return false;
+      return {
+        'success': false,
+        'message': pleaseGenerateCaptchaFirst,
+      };
     }
 
     _isLoading = true;
@@ -85,39 +97,56 @@ class AuthService extends ChangeNotifier {
         body: json.encode({
           'username': username,
           'password': password,
-          'email': email,
           'captcha': captcha,
-          'uuid': _currentUuid,
+          'captchaId': _currentUuid,
         }),
       ).timeout(AppConfig.apiTimeout);
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        _token = data['token'];
+      
+      final responseData = json.decode(response.body);
+      print('注册响应: $responseData');
+      
+      // 根据服务端返回的code字段判断成功或失败
+      if (response.statusCode == 200 && responseData['code'] == 200) {
+        // 注册成功
+        _token = responseData['data']?['token'];
         _currentUser = username;
         await _secureStorage.write(key: 'token', value: _token);
         await _secureStorage.write(key: 'username', value: username);
         _isLoading = false;
         notifyListeners();
-        return true;
+        return {
+          'success': true,
+          'message': registrationSuccess,
+        };
       } else {
-        // 处理服务端返回的错误信息
-        final errorData = json.decode(response.body);
-        print('注册失败: ${errorData['message'] ?? '未知错误'}');
+        // 注册失败，返回服务端的错误信息
+        final errorMessage = responseData['msg'] ?? registrationFailedGeneric;
+        print('注册失败: $errorMessage');
+        _isLoading = false;
+        notifyListeners();
+        return {
+          'success': true,
+          'message': errorMessage,
+        };
       }
     } catch (e) {
       print('注册错误: $e');
+      _isLoading = false;
+      notifyListeners();
+      return {
+        'success': false,
+        'message': networkError,
+      };
     }
-
-    _isLoading = false;
-    notifyListeners();
-    return false;
   }
 
   // 用户登录
-  Future<bool> login({
+  Future<Map<String, dynamic>> login({
     required String username,
     required String password,
+    required String loginSuccess,
+    required String networkError,
+    required String loginFailedGeneric,
   }) async {
     _isLoading = true;
     notifyListeners();
@@ -133,27 +162,42 @@ class AuthService extends ChangeNotifier {
         }),
       ).timeout(AppConfig.apiTimeout);
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        _token = data['token'];
+      final responseData = json.decode(response.body);
+      print('登录响应: $responseData');
+      
+      // 根据服务端返回的code字段判断成功或失败
+      if (response.statusCode == 200 && responseData['code'] == 200) {
+        // 登录成功
+        _token = responseData['data']?['token'];
         _currentUser = username;
         await _secureStorage.write(key: 'token', value: _token);
         await _secureStorage.write(key: 'username', value: username);
         _isLoading = false;
         notifyListeners();
-        return true;
+        return {
+          'success': true,
+          'message': loginSuccess,
+        };
       } else {
-        // 处理服务端返回的错误信息
-        final errorData = json.decode(response.body);
-        print('登录失败: ${errorData['message'] ?? '未知错误'}');
+        // 登录失败，返回服务端的错误信息
+        final errorMessage = responseData['msg'] ?? loginFailedGeneric;
+        print('登录失败: $errorMessage');
+        _isLoading = false;
+        notifyListeners();
+        return {
+          'success': false,
+          'message': errorMessage,
+        };
       }
     } catch (e) {
       print('登录错误: $e');
+      _isLoading = false;
+      notifyListeners();
+      return {
+        'success': false,
+        'message': networkError,
+      };
     }
-
-    _isLoading = false;
-    notifyListeners();
-    return false;
   }
 
   // 用户登出

@@ -88,4 +88,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get loginFailed => '登录失败，请检查用户名和密码';
+
+  @override
+  String get registrationFailedGeneric => '注册失败';
+
+  @override
+  String get pleaseGenerateCaptchaFirst => '请先生成验证码';
+
+  @override
+  String get networkError => '网络错误，请稍后重试';
+
+  @override
+  String get loginSuccess => '登录成功';
+
+  @override
+  String get registrationSuccess => '注册成功';
+
+  @override
+  String get getCaptchaFailed => '获取验证码失败';
 }

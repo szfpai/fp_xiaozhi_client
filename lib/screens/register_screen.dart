@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import '../l10n/app_localizations.dart';
 import '../services/auth_service.dart';
 import '../widgets/language_switcher.dart';
@@ -16,7 +17,6 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
-  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _captchaController = TextEditingController();
@@ -24,17 +24,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   Uint8List? _captchaImage;
+  bool _captchaError = false;
 
   @override
   void initState() {
     super.initState();
-    _generateCaptcha();
+    // 使用addPostFrameCallback确保在Widget完全构建后再调用验证码接口
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _generateCaptcha();
+    });
   }
 
   @override
   void dispose() {
     _usernameController.dispose();
-    _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _captchaController.dispose();
@@ -42,33 +45,71 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _generateCaptcha() async {
-    final authService = context.read<AuthService>();
-    final captchaImage = await authService.generateCaptcha();
-    setState(() {
-      _captchaImage = captchaImage;
-    });
+    try {
+      setState(() {
+        _captchaError = false;
+      });
+      
+      final l10n = AppLocalizations.of(context)!;
+      final authService = context.read<AuthService>();
+      final captchaImage = await authService.generateCaptcha(
+        getCaptchaFailed: l10n.getCaptchaFailed,
+      );
+      
+      if (mounted) {
+        setState(() {
+          _captchaImage = captchaImage;
+          _captchaError = false;
+        });
+      }
+    } catch (e) {
+      print('生成验证码失败: $e');
+      if (mounted) {
+        setState(() {
+          _captchaError = true;
+        });
+        // 显示错误提示
+        final l10n = AppLocalizations.of(context)!;
+        Fluttertoast.showToast(
+          msg: l10n.getCaptchaFailed,
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.CENTER,
+          timeInSecForIosWeb: 1,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+          fontSize: 16.0
+        );
+      }
+    }
   }
 
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final success = await context.read<AuthService>().register(
+    final l10n = AppLocalizations.of(context)!;
+    final result = await context.read<AuthService>().register(
       username: _usernameController.text.trim(),
       password: _passwordController.text,
-      email: _emailController.text.trim(),
       captcha: _captchaController.text.trim(),
+      pleaseGenerateCaptchaFirst: l10n.pleaseGenerateCaptchaFirst,
+      registrationSuccess: l10n.registrationSuccess,
+      networkError: l10n.networkError,
+      registrationFailedGeneric: l10n.registrationFailedGeneric,
     );
 
-    if (success && mounted) {
+    if (result['success'] && mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const HomeScreen()),
       );
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.registrationFailed),
-          backgroundColor: Colors.red,
-        ),
+      Fluttertoast.showToast(
+        msg: result['message'] ?? l10n.registrationFailed,
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0
       );
       // 刷新验证码
       _generateCaptcha();
@@ -143,27 +184,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             }
                             if (value.length < 3) {
                               return l10n.usernameTooShort;
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
-                        // 邮箱输入框
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: InputDecoration(
-                            labelText: l10n.email,
-                            prefixIcon: const Icon(Icons.email),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return l10n.pleaseEnterEmail;
-                            }
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                                .hasMatch(value)) {
-                              return l10n.invalidEmail;
                             }
                             return null;
                           },
@@ -268,11 +288,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         child: Image.memory(
                                           _captchaImage!,
                                           fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            print('图片显示错误: $error');
+                                            return const Center(
+                                              child: Icon(
+                                                Icons.broken_image,
+                                                color: Colors.red,
+                                                size: 24,
+                                              ),
+                                            );
+                                          },
                                         ),
                                       )
-                                    : const Center(
-                                        child: CircularProgressIndicator(),
-                                      ),
+                                    : _captchaError
+                                        ? const Center(
+                                            child: Icon(
+                                              Icons.error,
+                                              color: Colors.red,
+                                              size: 24,
+                                            ),
+                                          )
+                                        : const Center(
+                                            child: CircularProgressIndicator(),
+                                          ),
                               ),
                             ),
                           ],

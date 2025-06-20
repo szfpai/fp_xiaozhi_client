@@ -107,5 +107,29 @@
   "loginFailed": "Login failed, please check your username and password",
   "@loginFailed": {
     "description": "Error message for login failure"
+  },
+  "registrationFailedGeneric": "Registration failed",
+  "@registrationFailedGeneric": {
+    "description": "Generic registration failure message"
+  },
+  "pleaseGenerateCaptchaFirst": "Please generate captcha first",
+  "@pleaseGenerateCaptchaFirst": {
+    "description": "Message when captcha is not generated"
+  },
+  "networkError": "Network error, please try again later",
+  "@networkError": {
+    "description": "Generic network error message"
+  },
+  "loginSuccess": "Login successful",
+  "@loginSuccess": {
+    "description": "Login success message"
+  },
+  "registrationSuccess": "Registration successful",
+  "@registrationSuccess": {
+    "description": "Registration success message"
+  },
+  "getCaptchaFailed": "Failed to get captcha",
+  "@getCaptchaFailed": {
+    "description": "Error message when getting captcha fails"
   }
 } 

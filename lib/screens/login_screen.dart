@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import '../l10n/app_localizations.dart';
 import '../services/auth_service.dart';
 import '../widgets/language_switcher.dart';
@@ -44,21 +45,28 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final success = await context.read<AuthService>().login(
+    final l10n = AppLocalizations.of(context)!;
+    final result = await context.read<AuthService>().login(
       username: _usernameController.text.trim(),
       password: _passwordController.text,
+      loginSuccess: l10n.loginSuccess,
+      networkError: l10n.networkError,
+      loginFailedGeneric: l10n.loginFailed,
     );
 
-    if (success && mounted) {
+    if (result['success'] && mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const HomeScreen()),
       );
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.loginFailed),
-          backgroundColor: Colors.red,
-        ),
+      Fluttertoast.showToast(
+        msg: result['message'] ?? l10n.loginFailed,
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.CENTER,
+        timeInSecForIosWeb: 1,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        fontSize: 16.0
       );
     }
   }

@@ -90,4 +90,22 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get loginFailed =>
       'Login failed, please check your username and password';
+
+  @override
+  String get registrationFailedGeneric => 'Registration failed';
+
+  @override
+  String get pleaseGenerateCaptchaFirst => 'Please generate captcha first';
+
+  @override
+  String get networkError => 'Network error, please try again later';
+
+  @override
+  String get loginSuccess => 'Login successful';
+
+  @override
+  String get registrationSuccess => 'Registration successful';
+
+  @override
+  String get getCaptchaFailed => 'Failed to get captcha';
 }

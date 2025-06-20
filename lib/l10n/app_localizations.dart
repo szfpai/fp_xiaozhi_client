@@ -259,6 +259,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Login failed, please check your username and password'**
   String get loginFailed;
+
+  /// Generic registration failure message
+  ///
+  /// In en, this message translates to:
+  /// **'Registration failed'**
+  String get registrationFailedGeneric;
+
+  /// Message when captcha is not generated
+  ///
+  /// In en, this message translates to:
+  /// **'Please generate captcha first'**
+  String get pleaseGenerateCaptchaFirst;
+
+  /// Generic network error message
+  ///
+  /// In en, this message translates to:
+  /// **'Network error, please try again later'**
+  String get networkError;
+
+  /// Login success message
+  ///
+  /// In en, this message translates to:
+  /// **'Login successful'**
+  String get loginSuccess;
+
+  /// Registration success message
+  ///
+  /// In en, this message translates to:
+  /// **'Registration successful'**
+  String get registrationSuccess;
+
+  /// Error message when getting captcha fails
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to get captcha'**
+  String get getCaptchaFailed;
 }
 
 class _AppLocalizationsDelegate
