@@ -40,11 +40,11 @@ class HomeService extends ChangeNotifier {
       } else {
         // 网络请求失败，返回mock数据以便测试
         print('网络请求失败: ${response.statusCode}, 返回mock数据');
-        return HomeMock.getAgents();
+        return getMockAgents();
       }
     } catch (e) {
       print('捕获到异常: $e, 返回mock数据');
-      return HomeMock.getAgents();
+      return getMockAgents();
     }
   }
 
@@ -75,6 +75,62 @@ class HomeService extends ChangeNotifier {
         } else {
           return {'success': false, 'message': responseData['message'] ?? '创建失败'};
         }
+      } else {
+        return {'success': false, 'message': '服务器错误: ${response.statusCode}'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': '网络请求失败: $e'};
+    }
+  }
+
+  Future<Agent?> getAgentDetails(int agentId) async {
+    final url = Uri.parse('${AppConfig.baseUrl}/api/agents/$agentId');
+    final token = authService.token;
+
+    if (token == null || token.isEmpty) {
+      return getMockAgent();
+      //throw Exception('用户未登录');
+    }
+
+    try {
+      final response = await http.get(url, headers: {
+        'Authorization': 'Bearer $token',
+      });
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        if (responseData['success'] == true && responseData['data'] != null) {
+          return Agent.fromJson(responseData['data']);
+        }
+      }
+      return null; // or throw an exception
+    } catch (e) {
+      print('获取Agent详情失败: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> updateAgent(Agent agent) async {
+    final url = Uri.parse('${AppConfig.baseUrl}/api/agents/${agent.id}');
+    final token = authService.token;
+
+    if (token == null || token.isEmpty) {
+      return {'success': false, 'message': '用户未登录'};
+    }
+
+    try {
+      final response = await http.put(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode(agent.toJson()),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        return {'success': responseData['success'], 'message': responseData['message'] ?? '更新成功'};
       } else {
         return {'success': false, 'message': '服务器错误: ${response.statusCode}'};
       }
