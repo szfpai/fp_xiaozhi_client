@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/home_service.dart';
+import '../data/agent.dart';
 import 'login_screen.dart';
+import 'character_config_screen.dart';
+import 'voiceprint_screen.dart';
+import 'history_screen.dart';
+import 'device_binding_screen.dart';
 
 // 功能项数据结构
 class HomeFeature {
@@ -27,33 +32,6 @@ class HomeCardData {
   });
 }
 
-// 模拟网络请求
-Future<List<HomeCardData>> fetchHomeCards() async {
-  await Future.delayed(const Duration(milliseconds: 500));
-  return [
-    HomeCardData(
-      userName: 'Ruchita',
-      welcomeMsg: 'How is it going today ?',
-      avatarUrl: 'https://randomuser.me/api/portraits/women/44.jpg',
-      doctorImgUrl: 'https://img.freepik.com/free-photo/portrait-smiling-young-doctor_171337-1532.jpg', // 右侧医生图片
-      features: [
-        HomeFeature('Doctors', Icons.local_hospital),
-        HomeFeature('Pharmacy', Icons.local_pharmacy),
-        HomeFeature('Hospitals', Icons.apartment),
-        HomeFeature('Consultation', Icons.chat),
-        HomeFeature('Care', Icons.favorite),
-        HomeFeature('Patient', Icons.person),
-        HomeFeature('Inventory', Icons.inventory),
-        HomeFeature('Laboratory', Icons.science),
-        HomeFeature('Staff', Icons.group),
-        HomeFeature('Ambulance', Icons.local_shipping),
-        HomeFeature('Reports', Icons.insert_drive_file),
-        HomeFeature('Monitoring', Icons.monitor_heart),
-      ],
-    ),
-    // 可添加更多Card
-  ];
-}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -206,15 +184,16 @@ class _HomeScreenState extends State<HomeScreen> {
                                 },
                                 itemBuilder: (context, index) {
                                   final agent = _agents[index];
+                                  final screenHeight = MediaQuery.of(context).size.height;
                                   return SingleChildScrollView(
                                     child: Padding(
                                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                                       child: Column(
                                         children: [
-                                          const SizedBox(height: 20),
-                                          _buildHeroInfoCard(agent),
-                                          const SizedBox(height: 24),
-                                          _buildConfigGrid(pageIndex: index),
+                                          SizedBox(height: screenHeight * 0.03),
+                                          _buildAgentInfoCard(agent, screenHeight),
+                                          SizedBox(height: screenHeight * 0.04),
+                                          _buildConfigGrid(agent: agent),
                                         ],
                                       ),
                                     ),
@@ -224,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(height: 16),
                             _buildPageIndicator(),
-                            const SizedBox(height: 80),
+                            const SizedBox(height: 80), // 为悬浮按钮留出空间
                           ],
                         ),
         ),
@@ -241,11 +220,11 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // 构建顶部的Hero信息卡片
-  Widget _buildHeroInfoCard(Agent agent) {
+  // 构建顶部的Agent信息卡片
+  Widget _buildAgentInfoCard(Agent agent, double screenHeight) {
     return Container(
-      height: 150, // 给HeroInfoCard一个固定的高度
-      padding: const EdgeInsets.all(20),
+      height: screenHeight * 0.22, // 响应式高度
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
@@ -255,12 +234,12 @@ class _HomeScreenState extends State<HomeScreen> {
             Color(0xFF764BA2),
           ],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -280,7 +259,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Color(0xFFF8F9FA),
                 ],
               ),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.1),
@@ -290,28 +269,32 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             child: Center(
-              child: Text(
-                agent.agentName,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2D3748),
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  agent.agentName,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2D3748),
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                textAlign: TextAlign.center,
               ),
             ),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 18),
           // 右侧信息
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly, // 均匀分布
               children: [
-                Expanded(child: _buildInfoRow('角色：${agent.character}', const Color(0xFFE6FFFA), const Color(0xFF38B2AC))),
-                const SizedBox(height: 12),
-                Expanded(child: _buildInfoRow('音色：${agent.ttsVoice}', const Color(0xFFFFF5F5), const Color(0xFFF56565))),
-                const SizedBox(height: 12),
-                Expanded(child: _buildInfoRow('模型：${agent.llmModel}', const Color(0xFFF0FFF4), const Color(0xFF48BB78))),
+                _buildInfoRow('角色: ${agent.character}', const Color(0xFFE6FFFA), const Color(0xFF38B2AC)),
+                _buildInfoRow('音色: ${agent.ttsVoice}', const Color(0xFFFFF5F5), const Color(0xFFF56565)),
+                _buildInfoRow('模型: ${agent.llmModel}', const Color(0xFFF0FFF4), const Color(0xFF48BB78)),
               ],
             ),
           ),
@@ -323,9 +306,11 @@ class _HomeScreenState extends State<HomeScreen> {
   // 构建信息行
   Widget _buildInfoRow(String text, Color backgroundColor, Color textColor) {
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      height: 38, // 固定信息行高度
       decoration: BoxDecoration(
         color: backgroundColor,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: textColor.withOpacity(0.3), width: 1),
         boxShadow: [
           BoxShadow(
@@ -339,17 +324,19 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Text(
           text,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: FontWeight.w500,
             color: textColor,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     );
   }
 
   // 配置按钮区
-  Widget _buildConfigGrid({required int pageIndex}) {
+  Widget _buildConfigGrid({required Agent agent}) {
     // 为每个按钮定义文案和颜色
     final List<Map<String, dynamic>> configs = [
       {
@@ -359,6 +346,12 @@ class _HomeScreenState extends State<HomeScreen> {
           end: Alignment.bottomRight,
           colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
         ),
+        'onTap': () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => CharacterConfigScreen(agentId: agent.id)),
+          );
+        },
       },
       {
         'text': '声纹识别',
@@ -367,6 +360,12 @@ class _HomeScreenState extends State<HomeScreen> {
           end: Alignment.bottomRight,
           colors: [Color(0xFF48BB78), Color(0xFF38A169)],
         ),
+        'onTap': () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => VoiceprintScreen(agentId: agent.id)),
+          );
+        },
       },
       {
         'text': '历史对话',
@@ -375,6 +374,12 @@ class _HomeScreenState extends State<HomeScreen> {
           end: Alignment.bottomRight,
           colors: [Color(0xFFED8936), Color(0xFFDD6B20)],
         ),
+        'onTap': () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => HistoryScreen(agentId: agent.id)),
+          );
+        },
       },
       {
         'text': '绑定设备',
@@ -383,39 +388,41 @@ class _HomeScreenState extends State<HomeScreen> {
           end: Alignment.bottomRight,
           colors: [Color(0xFF9F7AEA), Color(0xFF805AD5)],
         ),
+        'onTap': () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => DeviceBindingScreen(agentId: agent.id)),
+          );
+        },
       },
     ];
     final double screenWidth = MediaQuery.of(context).size.width;
     // 根据屏幕宽度动态调整卡片间距
-    final double horizontalPadding = screenWidth * 0.05;
     final double spacing = screenWidth * 0.05;
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(child: _buildConfigCard(configs[0]['text'], configs[0]['gradient'])),
-              SizedBox(width: spacing),
-              Expanded(child: _buildConfigCard(configs[1]['text'], configs[1]['gradient'])),
-            ],
-          ),
-          SizedBox(height: spacing),
-          Row(
-            children: [
-              Expanded(child: _buildConfigCard(configs[2]['text'], configs[2]['gradient'])),
-              SizedBox(width: spacing),
-              Expanded(child: _buildConfigCard(configs[3]['text'], configs[3]['gradient'])),
-            ],
-          ),
-        ],
-      ),
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(child: _buildConfigCard(configs[0]['text'], configs[0]['gradient'], configs[0]['onTap'])),
+            SizedBox(width: spacing),
+            Expanded(child: _buildConfigCard(configs[1]['text'], configs[1]['gradient'], configs[1]['onTap'])),
+          ],
+        ),
+        SizedBox(height: spacing),
+        Row(
+          children: [
+            Expanded(child: _buildConfigCard(configs[2]['text'], configs[2]['gradient'], configs[2]['onTap'])),
+            SizedBox(width: spacing),
+            Expanded(child: _buildConfigCard(configs[3]['text'], configs[3]['gradient'], configs[3]['onTap'])),
+          ],
+        ),
+      ],
     );
   }
 
   // 单个配置卡片
-  Widget _buildConfigCard(String text, Gradient gradient) {
+  Widget _buildConfigCard(String text, Gradient gradient, VoidCallback onTap) {
     return AspectRatio(
       aspectRatio: 1, // 保证卡片是正方形
       child: Container(
@@ -434,9 +441,7 @@ class _HomeScreenState extends State<HomeScreen> {
           color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(20),
-            onTap: () {
-              // TODO: 处理点击事件
-            },
+            onTap: onTap,
             child: Center(
               child: Text(
                 text,

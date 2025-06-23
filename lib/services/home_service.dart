@@ -3,44 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 import '../config/app_config.dart';
-
-class Agent {
-  final int id;
-  final String agentName;
-  final String ttsVoice;
-  final String llmModel;
-  final String assistantName;
-  final String userName;
-  final String character;
-  final String language;
-  final int deviceCount;
-
-  Agent({
-    required this.id,
-    required this.agentName,
-    required this.ttsVoice,
-    required this.llmModel,
-    required this.assistantName,
-    required this.userName,
-    required this.character,
-    required this.language,
-    required this.deviceCount,
-  });
-
-  factory Agent.fromJson(Map<String, dynamic> json) {
-    return Agent(
-      id: json['id'],
-      agentName: json['agent_name'] ?? '',
-      ttsVoice: json['tts_voice'] ?? '',
-      llmModel: json['llm_model'] ?? '',
-      assistantName: json['assistant_name'] ?? '',
-      userName: json['user_name'] ?? '',
-      character: json['character'] ?? '',
-      language: json['language'] ?? '',
-      deviceCount: json['deviceCount'] ?? 0,
-    );
-  }
-}
+import '../data/agent.dart';
+import '../mock/home_mock.dart';
 
 class HomeService extends ChangeNotifier {
   final AuthService authService;
@@ -76,20 +40,12 @@ class HomeService extends ChangeNotifier {
       } else {
         // 网络请求失败，返回mock数据以便测试
         print('网络请求失败: ${response.statusCode}, 返回mock数据');
-        return _getMockAgents();
+        return HomeMock.getAgents();
       }
     } catch (e) {
       print('捕获到异常: $e, 返回mock数据');
-      return _getMockAgents();
+      return HomeMock.getAgents();
     }
-  }
-
-  List<Agent> _getMockAgents() {
-    return [
-      Agent(id: 1, agentName: '小智', ttsVoice: '女神', llmModel: 'openAI', assistantName: '小助理', userName: '天平', character: '小河', language: '中文', deviceCount: 1),
-      Agent(id: 2, agentName: '小梦', ttsVoice: '御姐', llmModel: 'Kimi', assistantName: '大助理', userName: '小芳', character: '小溪', language: '英文', deviceCount: 2),
-      Agent(id: 3, agentName: '小慧', ttsVoice: '萝莉', llmModel: 'Gemini', assistantName: '中助理', userName: '小明', character: '小江', language: '日文', deviceCount: 3),
-    ];
   }
 }
 
