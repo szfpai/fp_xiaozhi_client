@@ -47,5 +47,40 @@ class HomeService extends ChangeNotifier {
       return HomeMock.getAgents();
     }
   }
+
+  Future<Map<String, dynamic>> addAgent({
+    required String agentName,
+  }) async {
+    final url = Uri.parse('${AppConfig.baseUrl}/api/agents');
+    final token = authService.token;
+
+    if (token == null || token.isEmpty) {
+      return {'success': false, 'message': '用户未登录'};
+    }
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({'agent_name': agentName}),
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        if (responseData['success'] == true) {
+          return {'success': true, 'message': '创建成功'};
+        } else {
+          return {'success': false, 'message': responseData['message'] ?? '创建失败'};
+        }
+      } else {
+        return {'success': false, 'message': '服务器错误: ${response.statusCode}'};
+      }
+    } catch (e) {
+      return {'success': false, 'message': '网络请求失败: $e'};
+    }
+  }
 }
 
