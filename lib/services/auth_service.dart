@@ -106,12 +106,13 @@ class AuthService extends ChangeNotifier {
       print('注册响应: $responseData');
       
       // 根据服务端返回的code字段判断成功或失败
-      if (response.statusCode == 200 && responseData['code'] == 200) {
+      if (response.statusCode == 200 && responseData['code'] == 0) {
         // 注册成功
-        _token = responseData['data']?['token'];
-        _currentUser = username;
-        await _secureStorage.write(key: 'token', value: _token);
-        await _secureStorage.write(key: 'username', value: username);
+        // _token = responseData['data']?['token'];
+        // _currentUser = username;
+        // await _secureStorage.write(key: 'token', value: _token);
+        // await _secureStorage.write(key: 'username', value: username);
+        print('注册成功: $responseData');
         _isLoading = false;
         notifyListeners();
         return {
@@ -125,7 +126,7 @@ class AuthService extends ChangeNotifier {
         _isLoading = false;
         notifyListeners();
         return {
-          'success': true,
+          'success': false,
           'message': errorMessage,
         };
       }
@@ -144,6 +145,7 @@ class AuthService extends ChangeNotifier {
   Future<Map<String, dynamic>> login({
     required String username,
     required String password,
+    String? captcha,
     required String loginSuccess,
     required String networkError,
     required String loginFailedGeneric,
@@ -152,26 +154,52 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // 构建请求体
+      final Map<String, dynamic> requestBody = {
+        'username': username,
+        'password': password,
+      };
+      
+      // 如果提供了验证码，添加到请求中
+      if (captcha != null && captcha.isNotEmpty && _currentUuid != null) {
+        requestBody['captcha'] = captcha;
+        requestBody['captchaId'] = _currentUuid;
+      }
+      
       // 登录API调用
       final response = await http.post(
         Uri.parse('${AppConfig.baseUrl}/xiaozhi/user/login'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'username': username,
-          'password': password,
-        }),
+        body: json.encode(requestBody),
       ).timeout(AppConfig.apiTimeout);
 
       final responseData = json.decode(response.body);
       print('登录响应: $responseData');
       
       // 根据服务端返回的code字段判断成功或失败
-      if (response.statusCode == 200 && responseData['code'] == 200) {
+      if (response.statusCode == 200 && responseData['code'] == 0) {
         // 登录成功
-        _token = responseData['data']?['token'];
+        final data = responseData['data'];
+        _token = data?['token'];
         _currentUser = username;
+        
+        // 保存登录信息到本地存储
         await _secureStorage.write(key: 'token', value: _token);
-        await _secureStorage.write(key: 'username', value: username);
+        await _secureStorage.write(key: 'currentUser', value: _currentUser);
+        
+        // 保存过期时间（秒）
+        if (data?['expire'] != null) {
+          await _secureStorage.write(key: 'expire', value: data['expire'].toString());
+        }
+        
+        // 保存客户端哈希
+        if (data?['clientHash'] != null) {
+          await _secureStorage.write(key: 'clientHash', value: data['clientHash']);
+        }
+        
+        // 保存登录时间戳
+        await _secureStorage.write(key: 'loginTime', value: DateTime.now().millisecondsSinceEpoch.toString());
+
         _isLoading = false;
         notifyListeners();
         return {
@@ -211,11 +239,96 @@ class AuthService extends ChangeNotifier {
   // 检查登录状态
   Future<void> checkLoginStatus() async {
     final token = await _secureStorage.read(key: 'token');
-    final username = await _secureStorage.read(key: 'username');
-    if (token != null && username != null) {
-      _token = token;
-      _currentUser = username;
-      notifyListeners();
+    final currentUser = await _secureStorage.read(key: 'currentUser');
+    final expire = await _secureStorage.read(key: 'expire');
+    final loginTime = await _secureStorage.read(key: 'loginTime');
+    
+    if (token != null && currentUser != null) {
+      // 检查token是否过期
+      bool isExpired = false;
+      
+      if (expire != null && loginTime != null) {
+        try {
+          final expireSeconds = int.parse(expire);
+          final loginTimestamp = int.parse(loginTime);
+          final currentTimestamp = DateTime.now().millisecondsSinceEpoch;
+          final elapsedSeconds = (currentTimestamp - loginTimestamp) ~/ 1000;
+          
+          // 如果已经超过过期时间，则标记为过期
+          if (elapsedSeconds >= expireSeconds) {
+            isExpired = true;
+            print('Token已过期，已过${elapsedSeconds}秒，过期时间${expireSeconds}秒');
+          }
+        } catch (e) {
+          print('解析过期时间出错: $e');
+          isExpired = true;
+        }
+      }
+      
+      if (!isExpired) {
+        _token = token;
+        _currentUser = currentUser;
+        notifyListeners();
+      } else {
+        // Token过期，清除本地存储
+        await logout();
+      }
     }
+  }
+
+  // 获取token剩余有效时间（秒）
+  Future<int?> getTokenRemainingTime() async {
+    final expire = await _secureStorage.read(key: 'expire');
+    final loginTime = await _secureStorage.read(key: 'loginTime');
+    
+    if (expire != null && loginTime != null) {
+      try {
+        final expireSeconds = int.parse(expire);
+        final loginTimestamp = int.parse(loginTime);
+        final currentTimestamp = DateTime.now().millisecondsSinceEpoch;
+        final elapsedSeconds = (currentTimestamp - loginTimestamp) ~/ 1000;
+        
+        final remainingSeconds = expireSeconds - elapsedSeconds;
+        return remainingSeconds > 0 ? remainingSeconds : 0;
+      } catch (e) {
+        print('计算剩余时间出错: $e');
+        return null;
+      }
+    }
+    return null;
+  }
+
+  // 检查token是否即将过期（默认提前5分钟提醒）
+  Future<bool> isTokenExpiringSoon({int warningMinutes = 5}) async {
+    final remainingTime = await getTokenRemainingTime();
+    if (remainingTime != null) {
+      return remainingTime <= (warningMinutes * 60);
+    }
+    return false;
+  }
+
+  // 调试方法：打印当前缓存状态
+  Future<void> debugPrintCacheStatus() async {
+    final token = await _secureStorage.read(key: 'token');
+    final currentUser = await _secureStorage.read(key: 'currentUser');
+    final expire = await _secureStorage.read(key: 'expire');
+    final loginTime = await _secureStorage.read(key: 'loginTime');
+    final clientHash = await _secureStorage.read(key: 'clientHash');
+    
+    print('=== 缓存状态调试信息 ===');
+    print('Token: ${token != null ? '已保存' : '未保存'}');
+    print('当前用户: $currentUser');
+    print('过期时间: $expire 秒');
+    print('登录时间: $loginTime');
+    print('客户端哈希: $clientHash');
+    
+    final remainingTime = await getTokenRemainingTime();
+    if (remainingTime != null) {
+      print('剩余有效时间: $remainingTime 秒');
+      print('是否即将过期: ${await isTokenExpiringSoon()}');
+    } else {
+      print('无法计算剩余时间');
+    }
+    print('=======================');
   }
 } 

@@ -19,7 +19,7 @@ class TtsService {
       throw Exception('Authentication token not found.');
     }
 
-    final url = Uri.parse('${AppConfig.baseUrl}/api/tts/voices');
+    final url = Uri.parse('${AppConfig.baseUrl}/api/roles/tts-list');
     final response = await http.get(
       url,
       headers: {

@@ -12,7 +12,7 @@ class AppConfig {
   static String get baseUrl {
     switch (environment) {
       case Environment.development:
-        return 'http://localhost:8002';
+        return 'http://127.0.0.1:8002';
       case Environment.testing:
         return 'http://test-api.xiaozhi.com';
       case Environment.production:

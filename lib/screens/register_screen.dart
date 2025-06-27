@@ -6,6 +6,7 @@ import '../l10n/app_localizations.dart';
 import '../services/auth_service.dart';
 import '../widgets/language_switcher.dart';
 import 'home_screen.dart';
+import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -57,6 +58,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
       
       if (mounted) {
+        print('验证码图片获取成功: ${captchaImage.length} bytes');
         setState(() {
           _captchaImage = captchaImage;
           _captchaError = false;
@@ -98,9 +100,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
 
     if (result['success'] && mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      // 显示注册成功提示
+      Fluttertoast.showToast(
+        msg: '🎉 注册成功！\n请使用您的用户名和密码登录',
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.CENTER,
+        timeInSecForIosWeb: 3,
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
+        fontSize: 16.0
       );
+      
+      // 延迟跳转，让用户看到成功提示
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          // 跳转到登录界面
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const LoginScreen()),
+          );
+        }
+      });
     } else if (mounted) {
       Fluttertoast.showToast(
         msg: result['message'] ?? l10n.registrationFailed,
@@ -276,52 +295,164 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             GestureDetector(
                               onTap: _generateCaptcha,
                               child: Container(
-                                width: 120,
-                                height: 50,
+                                width: 150, // 固定宽度
+                                height: 60,  // 固定高度
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey),
+                                  border: Border.all(
+                                    color: _captchaError ? Colors.red : Colors.grey[400]!,
+                                    width: _captchaError ? 2 : 1,
+                                  ),
                                   borderRadius: BorderRadius.circular(8),
+                                  color: Colors.grey[50],
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 2,
+                                      offset: const Offset(0, 1),
+                                    ),
+                                  ],
                                 ),
                                 child: _captchaImage != null
                                     ? ClipRRect(
                                         borderRadius: BorderRadius.circular(8),
-                                        child: Image.memory(
-                                          _captchaImage!,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (context, error, stackTrace) {
-                                            print('图片显示错误: $error');
-                                            return const Center(
-                                              child: Icon(
-                                                Icons.broken_image,
-                                                color: Colors.red,
-                                                size: 24,
+                                        child: Stack(
+                                          children: [
+                                            Image.memory(
+                                              _captchaImage!,
+                                              fit: BoxFit.contain, // 保持比例，完整显示
+                                              width: 150,
+                                              height: 60,
+                                              errorBuilder: (context, error, stackTrace) {
+                                                print('验证码图片显示错误: $error');
+                                                return Container(
+                                                  width: 150,
+                                                  height: 60,
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.red[50],
+                                                    borderRadius: BorderRadius.circular(8),
+                                                  ),
+                                                  child: const Center(
+                                                    child: Column(
+                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      children: [
+                                                        Icon(
+                                                          Icons.broken_image,
+                                                          color: Colors.red,
+                                                          size: 20,
+                                                        ),
+                                                        SizedBox(height: 4),
+                                                        Text(
+                                                          '图片加载失败',
+                                                          style: TextStyle(
+                                                            fontSize: 10,
+                                                            color: Colors.red,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                            // 添加刷新提示覆盖层
+                                            Positioned(
+                                              top: 2,
+                                              right: 2,
+                                              child: Container(
+                                                padding: const EdgeInsets.all(2),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black.withOpacity(0.3),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: const Icon(
+                                                  Icons.refresh,
+                                                  color: Colors.white,
+                                                  size: 12,
+                                                ),
                                               ),
-                                            );
-                                          },
+                                            ),
+                                          ],
                                         ),
                                       )
                                     : _captchaError
-                                        ? const Center(
-                                            child: Icon(
-                                              Icons.error,
-                                              color: Colors.red,
-                                              size: 24,
+                                        ? Container(
+                                            width: 150,
+                                            height: 60,
+                                            decoration: BoxDecoration(
+                                              color: Colors.red[50],
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: const Center(
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  Icon(
+                                                    Icons.error,
+                                                    color: Colors.red,
+                                                    size: 20,
+                                                  ),
+                                                  SizedBox(height: 4),
+                                                  Text(
+                                                    '获取失败',
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      color: Colors.red,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
                                             ),
                                           )
-                                        : const Center(
-                                            child: CircularProgressIndicator(),
+                                        : Container(
+                                            width: 150,
+                                            height: 60,
+                                            child: const Center(
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  SizedBox(
+                                                    width: 16,
+                                                    height: 16,
+                                                    child: CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                    ),
+                                                  ),
+                                                  SizedBox(height: 4),
+                                                  Text(
+                                                    '加载中...',
+                                                    style: TextStyle(
+                                                      fontSize: 10,
+                                                      color: Colors.grey,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
                                           ),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          l10n.clickToRefreshCaptcha,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '点击图片刷新验证码',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            if (_captchaImage != null)
+                              Text(
+                                '${_captchaImage!.length} bytes',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                          ],
                         ),
                         const SizedBox(height: 24),
 
