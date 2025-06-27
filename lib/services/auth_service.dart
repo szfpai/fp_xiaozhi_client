@@ -307,6 +307,74 @@ class AuthService extends ChangeNotifier {
     return false;
   }
 
+  // 异步获取token（用于其他服务调用）
+  Future<String?> getToken() async {
+    print('=== AuthService.getToken 开始 ===');
+    
+    // 如果内存中已有token，直接返回
+    if (_token != null && _token!.isNotEmpty) {
+      print('内存中已有token，直接返回');
+      return _token;
+    }
+    
+    print('内存中没有token，尝试从本地存储读取');
+    // 如果内存中没有token，尝试从本地存储读取
+    final storedToken = await _secureStorage.read(key: 'token');
+    print('从本地存储读取到的token: ${storedToken != null ? '已获取' : '未获取'}');
+    
+    if (storedToken != null && storedToken.isNotEmpty) {
+      // 检查token是否过期
+      final expire = await _secureStorage.read(key: 'expire');
+      final loginTime = await _secureStorage.read(key: 'loginTime');
+      
+      print('过期时间: $expire');
+      print('登录时间: $loginTime');
+      
+      if (expire != null && loginTime != null) {
+        try {
+          final expireSeconds = int.parse(expire);
+          final loginTimestamp = int.parse(loginTime);
+          final currentTimestamp = DateTime.now().millisecondsSinceEpoch;
+          final elapsedSeconds = (currentTimestamp - loginTimestamp) ~/ 1000;
+          
+          print('过期时间(秒): $expireSeconds');
+          print('已过时间(秒): $elapsedSeconds');
+          
+          // 如果token未过期，更新内存中的token并返回
+          if (elapsedSeconds < expireSeconds) {
+            _token = storedToken;
+            print('Token未过期，更新内存中的token');
+            return _token;
+          } else {
+            // Token已过期，清除本地存储但不调用logout（避免循环调用）
+            print('Token已过期，清除本地存储');
+            await _secureStorage.deleteAll();
+            _token = null;
+            _currentUser = null;
+            return null;
+          }
+        } catch (e) {
+          print('解析token过期时间出错: $e');
+          // 解析出错时清除本地存储
+          await _secureStorage.deleteAll();
+          _token = null;
+          _currentUser = null;
+          return null;
+        }
+      } else {
+        // 没有过期时间信息，直接返回存储的token
+        print('没有过期时间信息，直接返回存储的token');
+        _token = storedToken;
+        return _token;
+      }
+    } else {
+      print('本地存储中没有token');
+    }
+    
+    print('=== AuthService.getToken 结束，返回null ===');
+    return null;
+  }
+
   // 调试方法：打印当前缓存状态
   Future<void> debugPrintCacheStatus() async {
     final token = await _secureStorage.read(key: 'token');

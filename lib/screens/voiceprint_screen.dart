@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 
-class VoiceprintScreen extends StatelessWidget {
-  final int agentId;
+class VoiceprintScreen extends StatefulWidget {
+  final String agentId;
+  const VoiceprintScreen({super.key, required this.agentId});
 
-  const VoiceprintScreen({Key? key, required this.agentId}) : super(key: key);
+  @override
+  State<VoiceprintScreen> createState() => _VoiceprintScreenState();
+}
 
+class _VoiceprintScreenState extends State<VoiceprintScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -15,7 +19,7 @@ class VoiceprintScreen extends StatelessWidget {
       ),
       body: Center(
         child: Text(
-          '正在为 Agent ID: $agentId 进行声纹识别',
+          '正在为 Agent ID: ${widget.agentId} 进行声纹识别',
           style: const TextStyle(fontSize: 18),
         ),
       ),

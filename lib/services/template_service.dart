@@ -11,7 +11,7 @@ class TemplateService {
 
   Future<List<Template>> getTemplates() async {
     final url = Uri.parse('${AppConfig.baseUrl}/api/roles/templates');
-    final token = authService.token;
+    final token = await authService.getToken();
 
     if (token == null || token.isEmpty) {
       // 根据你的业务逻辑，可以抛出异常或返回空列表/mock数据

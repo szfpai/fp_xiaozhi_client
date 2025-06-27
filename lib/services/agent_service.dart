@@ -9,8 +9,8 @@ class AgentService {
   AgentService({required this.authService});
 
   /// 获取某个agent的聊天历史
-  Future<AgentHistory> getHistory(int agentId) async {
-    final token = authService.token;
+  Future<AgentHistory> getHistory(String agentId) async {
+    final token = await authService.getToken();
     if (token == null) {
       // 返回 mock 数据
       return AgentHistory(

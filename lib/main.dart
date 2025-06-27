@@ -85,9 +85,106 @@ class MyApp extends StatelessWidget {
               ),
             ),
           ),
-          home: const HomeScreen(),
+          home: const SplashScreen(),
         );
       },
+    );
+  }
+}
+
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({Key? key}) : super(key: key);
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    _checkLoginStatus();
+  }
+
+  Future<void> _checkLoginStatus() async {
+    try {
+      final authService = context.read<AuthService>();
+      await authService.checkLoginStatus();
+      
+      if (mounted) {
+        // 延迟一下让用户看到启动画面
+        await Future.delayed(const Duration(milliseconds: 500));
+        
+        if (mounted) {
+          if (authService.isLoggedIn) {
+            // 已登录，跳转到首页
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const HomeScreen()),
+            );
+          } else {
+            // 未登录，跳转到登录页面
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (context) => const LoginScreen()),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      print('检查登录状态时出错: $e');
+      if (mounted) {
+        // 出错时跳转到登录页面
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF667EEA),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // 应用图标或Logo
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.smart_toy,
+                size: 60,
+                color: Color(0xFF667EEA),
+              ),
+            ),
+            const SizedBox(height: 30),
+            const Text(
+              '小智管家',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 50),
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          ],
+        ),
+      ),
     );
   }
 } 

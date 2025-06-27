@@ -4,7 +4,7 @@ import '../services/agent_service.dart';
 import '../services/auth_service.dart';
 
 class HistoryScreen extends StatefulWidget {
-  final int agentId;
+  final String agentId;
   const HistoryScreen({super.key, required this.agentId});
 
   @override

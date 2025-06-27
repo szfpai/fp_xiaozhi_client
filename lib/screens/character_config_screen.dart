@@ -6,7 +6,7 @@ import '../services/auth_service.dart';
 import '../services/home_service.dart';
 
 class CharacterConfigScreen extends StatefulWidget {
-  final int agentId;
+  final String agentId;
 
   const CharacterConfigScreen({Key? key, required this.agentId}) : super(key: key);
 
@@ -54,7 +54,7 @@ class _CharacterConfigScreenState extends State<CharacterConfigScreen> {
           _assistantNameController.text = agent.assistantName;
           _characterIntroController.text = agent.character;
           _selectedLanguage = _mapAgentLanguageToDropdown(agent.language);
-          _selectedVoice = agent.ttsVoice;   // Assuming ttsVoice matches one of the dropdown items
+          _selectedVoice = agent.ttsVoice;   // Using getter method
           _isLoading = false;
         });
       }
@@ -75,23 +75,16 @@ class _CharacterConfigScreenState extends State<CharacterConfigScreen> {
 
     final updatedAgent = Agent(
       id: _agent!.id,
-      userId: _agent!.userId,
       agentName: _agent!.agentName,
-      assistantName: _assistantNameController.text,
-      character: _characterIntroController.text,
-      language: _selectedLanguage ?? _agent!.language,
-      ttsVoice: _selectedVoice ?? _agent!.ttsVoice,
-      llmModel: _agent!.llmModel,
-      userName: _agent!.userName,
-      memory: _agent!.memory,
-      longMemorySwitch: _agent!.longMemorySwitch,
-      langCode: _agent!.langCode,
-      ttsSpeechSpeed: _agent!.ttsSpeechSpeed,
-      asrSpeed: _agent!.asrSpeed,
-      ttsPitch: _agent!.ttsPitch,
+      ttsModelName: _agent!.ttsModelName,
+      ttsVoiceName: _selectedVoice ?? _agent!.ttsVoiceName,
+      llmModelName: _agent!.llmModelName,
+      vllmModelName: _agent!.vllmModelName,
+      memModelId: _agent!.memModelId,
+      systemPrompt: _characterIntroController.text,
+      summaryMemory: _agent!.summaryMemory,
+      lastConnectedAt: _agent!.lastConnectedAt,
       deviceCount: _agent!.deviceCount,
-      createdAt: _agent!.createdAt,
-      updatedAt: _agent!.updatedAt,
     );
 
     final authService = context.read<AuthService>();

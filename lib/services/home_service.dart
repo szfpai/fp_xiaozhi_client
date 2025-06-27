@@ -13,7 +13,10 @@ class HomeService extends ChangeNotifier {
 
   Future<List<Agent>> getAgents({int page = 1, int pageSize = 24}) async {
     final url =
-        Uri.parse('${AppConfig.baseUrl}/api/agents?page=$page&pageSize=$pageSize');
+        Uri.parse('${AppConfig.baseUrl}/xiaozhi/agent/list?page=$page&pageSize=$pageSize');
+
+    print('=== HomeService.getAgents 开始 ===');
+    print('请求URL: $url');
 
     // 构建headers，包含Content-Type和可选的Authorization token
     final Map<String, String> headers = {
@@ -21,30 +24,54 @@ class HomeService extends ChangeNotifier {
     };
 
     // 从AuthService获取token
-    final token = authService.token;
+    print('正在获取token...');
+    final token = await authService.getToken();
+    print('获取到的token: ${token != null ? '已获取' : '未获取'}');
+    
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
+      print('已添加Authorization header');
+    } else {
+      // 用户未登录，直接返回mock数据
+      print('用户未登录，返回mock数据');
+      return getMockAgents();
     }
 
     try {
+      print('发送HTTP请求...');
       final response = await http.get(url, headers: headers);
+      print('响应状态码: ${response.statusCode}');
+      print('响应头: ${response.headers}');
+      
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
-        if (data['success'] == true && data['data'] is List) {
-          return (data['data'] as List)
+        print('响应数据: $data');
+        
+        if (data['msg'] == 'success' && data['data'] is List) {
+          final agents = (data['data'] as List)
               .map((item) => Agent.fromJson(item))
               .toList();
+          print('成功解析 ${agents.length} 个Agent');
+          return agents;
         } else {
           throw Exception('API返回数据格式错误: ${data['message']}');
         }
+      } else if (response.statusCode == 401) {
+        // 认证失败，可能是token过期
+        print('认证失败 (401)，返回mock数据');
+        print('响应体: ${response.body}');
+        return getMockAgents();
       } else {
         // 网络请求失败，返回mock数据以便测试
         print('网络请求失败: ${response.statusCode}, 返回mock数据');
+        print('响应体: ${response.body}');
         return getMockAgents();
       }
     } catch (e) {
       print('捕获到异常: $e, 返回mock数据');
       return getMockAgents();
+    } finally {
+      print('=== HomeService.getAgents 结束 ===');
     }
   }
 
@@ -52,7 +79,7 @@ class HomeService extends ChangeNotifier {
     required String agentName,
   }) async {
     final url = Uri.parse('${AppConfig.baseUrl}/api/agents');
-    final token = authService.token;
+    final token = await authService.getToken();
 
     if (token == null || token.isEmpty) {
       return {'success': false, 'message': '用户未登录'};
@@ -83,13 +110,13 @@ class HomeService extends ChangeNotifier {
     }
   }
 
-  Future<Agent?> getAgentDetails(int agentId) async {
+  Future<Agent?> getAgentDetails(String agentId) async {
     final url = Uri.parse('${AppConfig.baseUrl}/api/agents/$agentId');
-    final token = authService.token;
+    final token = await authService.getToken();
 
     if (token == null || token.isEmpty) {
-      return getMockAgent();
-      //throw Exception('用户未登录');
+      //return getMockAgent();
+      throw Exception('用户未登录');
     }
 
     try {
@@ -112,7 +139,7 @@ class HomeService extends ChangeNotifier {
 
   Future<Map<String, dynamic>> updateAgent(Agent agent) async {
     final url = Uri.parse('${AppConfig.baseUrl}/api/agents/${agent.id}');
-    final token = authService.token;
+    final token = await authService.getToken();
 
     if (token == null || token.isEmpty) {
       return {'success': false, 'message': '用户未登录'};

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class DeviceBindingScreen extends StatefulWidget {
-  final int agentId;
+  final String agentId;
   const DeviceBindingScreen({super.key, required this.agentId});
 
   @override

@@ -290,9 +290,9 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisAlignment: MainAxisAlignment.spaceEvenly, // 均匀分布
               children: [
-                _buildInfoRow('角色: ${agent.character}', Colors.white.withOpacity(0.25), Colors.white),
-                _buildInfoRow('音色: ${agent.ttsVoice}', Colors.white.withOpacity(0.25), Colors.white),
-                _buildInfoRow('模型: ${agent.llmModel}', Colors.white.withOpacity(0.25), Colors.white),
+                _buildInfoRow('语言模型: ${agent.llmModel}', Colors.white.withOpacity(0.25), Colors.white),
+                _buildInfoRow('音色模型: ${agent.ttsModelName}', Colors.white.withOpacity(0.25), Colors.white),
+                _buildInfoRow('声音: ${agent.ttsVoiceName}', Colors.white.withOpacity(0.25), Colors.white),
               ],
             ),
           ),

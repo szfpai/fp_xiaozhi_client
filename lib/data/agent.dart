@@ -1,90 +1,79 @@
 import 'dart:convert';
 
 class Agent {
-  final int id;
-  final int userId;
+  final String id;
   final String agentName;
-  final String ttsVoice;
-  final String llmModel;
-  final String assistantName;
-  final String userName;
-  final String? memory;
-  final String character;
-  final int longMemorySwitch;
-  final String langCode;
-  final String language;
-  final String ttsSpeechSpeed;
-  final String asrSpeed;
-  final int ttsPitch;
+  final String ttsModelName;
+  final String ttsVoiceName;
+  final String llmModelName;
+  final String vllmModelName;
+  final String memModelId;
+  final String systemPrompt;
+  final String? summaryMemory;
+  final String? lastConnectedAt;
   final int deviceCount;
-  final String createdAt;
-  final String updatedAt;
 
   Agent({
     required this.id,
-    required this.userId,
     required this.agentName,
-    required this.ttsVoice,
-    required this.llmModel,
-    required this.assistantName,
-    required this.userName,
-    this.memory,
-    required this.character,
-    required this.longMemorySwitch,
-    required this.langCode,
-    required this.language,
-    required this.ttsSpeechSpeed,
-    required this.asrSpeed,
-    required this.ttsPitch,
+    required this.ttsModelName,
+    required this.ttsVoiceName,
+    required this.llmModelName,
+    required this.vllmModelName,
+    required this.memModelId,
+    required this.systemPrompt,
+    this.summaryMemory,
+    this.lastConnectedAt,
     required this.deviceCount,
-    required this.createdAt,
-    required this.updatedAt,
   });
 
   factory Agent.fromJson(Map<String, dynamic> json) {
     return Agent(
-      id: json['id'] ?? 0,
-      userId: json['user_id'] ?? 0,
-      agentName: json['agent_name'] ?? '',
-      ttsVoice: json['tts_voice'] ?? '',
-      llmModel: json['llm_model'] ?? '',
-      assistantName: json['assistant_name'] ?? '',
-      userName: json['user_name'] ?? '',
-      memory: json['memory'],
-      character: json['character'] ?? '',
-      longMemorySwitch: json['long_memory_switch'] ?? 0,
-      langCode: json['lang_code'] ?? '',
-      language: json['language'] ?? '',
-      ttsSpeechSpeed: json['tts_speech_speed'] ?? 'normal',
-      asrSpeed: json['asr_speed'] ?? 'normal',
-      ttsPitch: json['tts_pitch'] ?? 0,
+      id: json['id'] ?? '',
+      agentName: json['agentName'] ?? '',
+      ttsModelName: json['ttsModelName'] ?? '',
+      ttsVoiceName: json['ttsVoiceName'] ?? '',
+      llmModelName: json['llmModelName'] ?? '',
+      vllmModelName: json['vllmModelName'] ?? '',
+      memModelId: json['memModelId'] ?? '',
+      systemPrompt: json['systemPrompt'] ?? '',
+      summaryMemory: json['summaryMemory'],
+      lastConnectedAt: json['lastConnectedAt'],
       deviceCount: json['deviceCount'] ?? 0,
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'user_id': userId,
-      'agent_name': agentName,
-      'tts_voice': ttsVoice,
-      'llm_model': llmModel,
-      'assistant_name': assistantName,
-      'user_name': userName,
-      'memory': memory,
-      'character': character,
-      'long_memory_switch': longMemorySwitch,
-      'lang_code': langCode,
-      'language': language,
-      'tts_speech_speed': ttsSpeechSpeed,
-      'asr_speed': asrSpeed,
-      'tts_pitch': ttsPitch,
+      'agentName': agentName,
+      'ttsModelName': ttsModelName,
+      'ttsVoiceName': ttsVoiceName,
+      'llmModelName': llmModelName,
+      'vllmModelName': vllmModelName,
+      'memModelId': memModelId,
+      'systemPrompt': systemPrompt,
+      'summaryMemory': summaryMemory,
+      'lastConnectedAt': lastConnectedAt,
       'deviceCount': deviceCount,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
     };
   }
+
+  // 为了保持向后兼容，添加一些 getter 方法
+  String get ttsVoice => ttsVoiceName;
+  String get llmModel => llmModelName;
+  String get character => systemPrompt;
+  String? get memory => summaryMemory;
+  String get assistantName => agentName; // 使用 agentName 作为 assistantName
+  String get userName => ''; // 暂时返回空字符串
+  String get language => '中文'; // 默认中文
+  String get langCode => 'zh'; // 默认中文代码
+  String get ttsSpeechSpeed => 'normal'; // 默认正常速度
+  String get asrSpeed => 'normal'; // 默认正常速度
+  int get ttsPitch => 0; // 默认音调
+  int get userId => 0; // 暂时返回 0
+  String get createdAt => ''; // 暂时返回空字符串
+  String get updatedAt => ''; // 暂时返回空字符串
+  int get longMemorySwitch => 1; // 默认开启长记忆
 } 
             
