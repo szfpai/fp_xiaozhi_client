@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:provider/provider.dart';
-import '../services/home_service.dart';
 import '../services/auth_service.dart';
+import '../services/agent_service.dart';
 
 class AddAgentScreen extends StatefulWidget {
   const AddAgentScreen({super.key});
@@ -30,26 +30,27 @@ class _AddAgentScreenState extends State<AddAgentScreen> {
     });
 
     final authService = context.read<AuthService>();
-    final homeService = HomeService(authService: authService);
+    final agentService = AgentService(authService: authService);
 
-    final result = await homeService.addAgent(
-      agentName: _agentNameController.text.trim(),
-    );
-
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-
-      Fluttertoast.showToast(
-        msg: result['message'],
-        backgroundColor: result['success'] ? Colors.green : Colors.red,
-        textColor: Colors.white,
+    try {
+      final success = await agentService.createAgent(
+        _agentNameController.text.trim(),
       );
-
-      if (result['success']) {
-        Navigator.pop(context, true); // 返回true表示成功
+      if (success) {
+        // 创建成功后的处理逻辑
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('创建成功')),
+        );
+        Navigator.of(context).pop(true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('创建失败')),
+        );
       }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('创建失败: \\${e.toString()}')),
+      );
     }
   }
 

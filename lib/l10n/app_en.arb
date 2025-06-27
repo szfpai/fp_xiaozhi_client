@@ -84,7 +84,7 @@
   "@registrationFailed": {
     "description": "Error message for registration failure"
   },
-  "appTitle": "Xiaozhi Manager",
+  "appTitle": "FP AI",
   "@appTitle": {
     "description": "App title"
   },

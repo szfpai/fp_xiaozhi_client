@@ -72,7 +72,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get registrationFailed => '注册失败，请检查输入信息或验证码';
 
   @override
-  String get appTitle => '小智管家';
+  String get appTitle => '浮点AI';
 
   @override
   String get welcomeBack => '欢迎回来';

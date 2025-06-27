@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
     return Consumer<LanguageService>(
       builder: (context, languageService, child) {
         return MaterialApp(
-          title: '小智管家',
+          title: '浮点AI',
           debugShowCheckedModeBanner: false,
           locale: languageService.currentLocale,
           localizationsDelegates: const [
@@ -171,7 +171,7 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
             const SizedBox(height: 30),
             const Text(
-              '小智管家',
+              '浮点AI',
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,

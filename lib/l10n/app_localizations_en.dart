@@ -73,7 +73,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Registration failed, please check your input or captcha';
 
   @override
-  String get appTitle => 'Xiaozhi Manager';
+  String get appTitle => 'FP AI';
 
   @override
   String get welcomeBack => 'Welcome Back';

@@ -146,7 +146,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF667EEA),
       appBar: AppBar(
-        title: const Text('小智客户端'),
+        title: const Text('浮点AI'),
         backgroundColor: const Color(0xFF667EEA),
         foregroundColor: Colors.white,
         actions: [

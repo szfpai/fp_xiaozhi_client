@@ -12,11 +12,11 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  String? userName;
-  String? deviceId;
-  String? userAvatarUrl;
-  List<ChatMessage> messages = [];
-  bool isLoading = true;
+  List<Session> sessions = [];
+  List<ChatHistoryItem> chatHistory = [];
+  Session? selectedSession;
+  bool isLoadingSessions = true;
+  bool isLoadingChatHistory = false;
   String? error;
 
   late final AgentService agentService;
@@ -24,44 +24,84 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   void initState() {
     super.initState();
-    // 获取 AuthService 实例（假设你用 Provider 管理）
     final authService = context.read<AuthService>();
     agentService = AgentService(authService: authService);
-    fetchHistory();
+    _loadSessions();
   }
 
-  Future<void> fetchHistory() async {
+  Future<void> _loadSessions() async {
     try {
-      final data = await agentService.getHistory(widget.agentId);
       setState(() {
-        userName = data.userName;
-        deviceId = data.deviceId;
-        userAvatarUrl = data.userAvatarUrl;
-        messages = data.messages;
-        isLoading = false;
+        isLoadingSessions = true;
+        error = null;
+      });
+
+      final response = await agentService.getSessionList(widget.agentId);
+      setState(() {
+        sessions = response.list;
+        isLoadingSessions = false;
+      });
+
+      // 如果有会话，自动选择第一个
+      if (sessions.isNotEmpty) {
+        _selectSession(sessions.first);
+      }
+    } catch (e) {
+      setState(() {
+        error = e.toString();
+        isLoadingSessions = false;
+      });
+    }
+  }
+
+  Future<void> _selectSession(Session session) async {
+    setState(() {
+      selectedSession = session;
+      isLoadingChatHistory = true;
+      chatHistory = [];
+    });
+
+    try {
+      final history = await agentService.getChatHistory(widget.agentId, session.sessionId);
+      setState(() {
+        chatHistory = history;
+        isLoadingChatHistory = false;
       });
     } catch (e) {
       setState(() {
         error = e.toString();
-        isLoading = false;
+        isLoadingChatHistory = false;
       });
+    }
+  }
+
+  String _formatTime(String timeString) {
+    try {
+      final dateTime = DateTime.parse(timeString);
+      final now = DateTime.now();
+      final difference = now.difference(dateTime);
+      if (difference.inDays > 0) {
+        return '${difference.inDays}天前';
+      } else if (difference.inHours > 0) {
+        return '${difference.inHours}小时前';
+      } else if (difference.inMinutes > 0) {
+        return '${difference.inMinutes}分钟前';
+      } else {
+        return '刚刚';
+      }
+    } catch (e) {
+      return timeString;
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (error != null) {
-      return Center(child: Text('加载失败: $error'));
-    }
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text(
-          '与$userName的聊天记录',
-          style: const TextStyle(
+        title: const Text(
+          '聊天历史',
+          style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 18,
@@ -90,163 +130,325 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ),
         child: Row(
           children: [
-            // 左侧信息栏
+            // 左侧会话列表
             Container(
-              width: 140,
-              color: Colors.white.withOpacity(0.85),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              width: 180,
+              color: Colors.white.withOpacity(0.95),
               child: Column(
                 children: [
-                  const SizedBox(height: 32),
-                  ClipOval(
-                    child: (userAvatarUrl?.isNotEmpty ?? false)
-                        ? Image.network(
-                            userAvatarUrl!,
-                            width: 64,
-                            height: 64,
-                            fit: BoxFit.contain, // 保证图片完整显示
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              width: 64,
-                              height: 64,
-                              color: const Color(0xFFE0E7EF),
-                              child: const Icon(Icons.person, size: 44, color: Color(0xFF667EEA)),
-                            ),
-                          )
-                        : Container(
-                            width: 64,
-                            height: 64,
-                            color: const Color(0xFFE0E7EF),
-                            child: const Icon(Icons.person, size: 44, color: Color(0xFF667EEA)),
-                          ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    userName ?? '',
-                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF222B45)),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    deviceId ?? '',
-                    style: const TextStyle(fontSize: 13, color: Color(0xFF8F9BB3)),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 12),
+                  // 会话列表标题
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF667EEA),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      messages.length.toString(),
-                      style: const TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Divider(height: 1, color: Colors.grey.withOpacity(0.15)),
-                  const SizedBox(height: 24),
-                  const Text('没有更多记录了', style: TextStyle(fontSize: 13, color: Color(0xFF8F9BB3))),
-                ],
-              ),
-            ),
-            // 聊天内容区
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 0),
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-                  itemCount: messages.length,
-                  separatorBuilder: (context, idx) => const SizedBox(height: 16),
-                  itemBuilder: (context, idx) {
-                    final msg = messages[idx];
-                    final isUser = msg.isUser;
-                    return Column(
-                      crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            if (!isUser) ...[
-                              // 机器人头像
-                              Container(
-                                margin: const EdgeInsets.only(right: 8),
-                                child: CircleAvatar(
-                                  radius: 18,
-                                  backgroundColor: Colors.white,
-                                  backgroundImage: const AssetImage('assets/robot_avatar.png'),
-                                  child: Image.asset('assets/robot_avatar.png', width: 32, height: 32, fit: BoxFit.cover),
-                                ),
-                              ),
-                            ],
-                            Flexible(
-                              child: ConstrainedBox(
-                                constraints: BoxConstraints(
-                                  maxWidth: MediaQuery.of(context).size.width * 0.75,
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-                                  decoration: BoxDecoration(
-                                    color: isUser ? const Color(0xFF667EEA) : Colors.white.withOpacity(0.95),
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: const Radius.circular(16),
-                                      topRight: const Radius.circular(16),
-                                      bottomLeft: Radius.circular(isUser ? 16 : 4),
-                                      bottomRight: Radius.circular(isUser ? 4 : 16),
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.06),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                    border: isUser
-                                        ? null
-                                        : Border.all(color: const Color(0xFF667EEA).withOpacity(0.10)),
-                                  ),
-                                  child: Text(
-                                    msg.text,
-                                    style: TextStyle(
-                                      color: isUser ? Colors.white : const Color(0xFF222B45),
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            if (!isUser) ...[
-                              // 播放按钮
-                              IconButton(
-                                icon: const Icon(Icons.play_circle_fill, color: Color(0xFF667EEA), size: 28),
-                                onPressed: () {},
-                                tooltip: '播放语音',
-                              ),
-                            ],
-                          ],
+                      border: Border(
+                        bottom: BorderSide(
+                          color: Colors.grey.withOpacity(0.2),
+                          width: 1,
                         ),
-                        // 时间分割线
-                        Padding(
-                          padding: EdgeInsets.only(
-                            top: 8,
-                            left: isUser ? 0 : 50,
-                            right: isUser ? 50 : 0,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.history, color: Color(0xFF667EEA)),
+                        const SizedBox(width: 8),
+                        const Text(
+                          '会话列表',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF222B45),
                           ),
-                          child: Text(
-                            msg.time,
-                            style: const TextStyle(fontSize: 12, color: Color(0xFF8F9BB3)),
+                        ),
+                        const Spacer(),
+                        Text(
+                          '${sessions.length}个会话',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF8F9BB3),
                           ),
                         ),
                       ],
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                  // 会话列表内容
+                  Expanded(
+                    child: isLoadingSessions
+                        ? const Center(child: CircularProgressIndicator())
+                        : error != null
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      '加载失败: $error',
+                                      style: const TextStyle(color: Colors.red),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: _loadSessions,
+                                      child: const Text('重试'),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : sessions.isEmpty
+                                ? const Center(
+                                    child: Text(
+                                      '暂无会话记录',
+                                      style: TextStyle(
+                                        color: Color(0xFF8F9BB3),
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    itemCount: sessions.length,
+                                    itemBuilder: (context, index) {
+                                      final session = sessions[index];
+                                      final isSelected = selectedSession?.sessionId == session.sessionId;
+                                      return Container(
+                                        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? const Color(0xFF667EEA).withOpacity(0.1)
+                                              : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: isSelected
+                                              ? Border.all(color: const Color(0xFF667EEA), width: 2)
+                                              : null,
+                                        ),
+                                        child: ListTile(
+                                          leading: CircleAvatar(
+                                            backgroundColor: const Color(0xFF667EEA),
+                                            child: Text(
+                                              '${index + 1}',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                          title: Text(
+                                            '会话 ${session.sessionId.substring(0, 8)}...',
+                                            style: TextStyle(
+                                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                              color: isSelected ? const Color(0xFF667EEA) : const Color(0xFF222B45),
+                                            ),
+                                          ),
+                                          subtitle: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                '消息数: ${session.chatCount}',
+                                                style: const TextStyle(fontSize: 12),
+                                              ),
+                                              Text(
+                                                _formatTime(session.createdAt),
+                                                style: const TextStyle(fontSize: 12),
+                                              ),
+                                            ],
+                                          ),
+                                          onTap: () => _selectSession(session),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                  ),
+                ],
+              ),
+            ),
+            // 右侧聊天记录区域
+            Expanded(
+              child: Container(
+                color: Colors.white.withOpacity(0.1),
+                child: selectedSession == null
+                    ? const Center(
+                        child: Text(
+                          '请选择一个会话查看聊天记录',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                          ),
+                        ),
+                      )
+                    : Column(
+                        children: [
+                          // 聊天记录标题
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.1),
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: Colors.white.withOpacity(0.2),
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.chat, color: Colors.white),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '会话 ${selectedSession!.sessionId.substring(0, 8)}...',
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  '${chatHistory.length}条消息',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // 聊天记录内容
+                          Expanded(
+                            child: isLoadingChatHistory
+                                ? const Center(
+                                    child: CircularProgressIndicator(
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : chatHistory.isEmpty
+                                    ? const Center(
+                                        child: Text(
+                                          '暂无聊天记录',
+                                          style: TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      )
+                                    : ListView.builder(
+                                        padding: const EdgeInsets.all(16),
+                                        itemCount: chatHistory.length,
+                                        itemBuilder: (context, index) {
+                                          final item = chatHistory[index];
+                                          final isUser = item.isUserMessage;
+                                          return Container(
+                                            margin: const EdgeInsets.only(bottom: 16),
+                                            child: Column(
+                                              crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+                                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                                  children: [
+                                                    if (!isUser) ...[
+                                                      // AI头像
+                                                      Container(
+                                                        margin: const EdgeInsets.only(right: 8),
+                                                        child: const CircleAvatar(
+                                                          radius: 18,
+                                                          backgroundColor: Colors.white,
+                                                          child: Icon(
+                                                            Icons.smart_toy,
+                                                            color: Color(0xFF667EEA),
+                                                            size: 24,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                    Flexible(
+                                                      child: ConstrainedBox(
+                                                        constraints: BoxConstraints(
+                                                          maxWidth: MediaQuery.of(context).size.width * 0.6,
+                                                        ),
+                                                        child: Container(
+                                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                                          decoration: BoxDecoration(
+                                                            color: isUser ? Colors.white : Colors.white.withOpacity(0.95),
+                                                            borderRadius: BorderRadius.only(
+                                                              topLeft: const Radius.circular(16),
+                                                              topRight: const Radius.circular(16),
+                                                              bottomLeft: Radius.circular(isUser ? 16 : 4),
+                                                              bottomRight: Radius.circular(isUser ? 4 : 16),
+                                                            ),
+                                                            boxShadow: [
+                                                              BoxShadow(
+                                                                color: Colors.black.withOpacity(0.1),
+                                                                blurRadius: 8,
+                                                                offset: const Offset(0, 2),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          child: Column(
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            children: [
+                                                              Text(
+                                                                item.content,
+                                                                style: TextStyle(
+                                                                  color: isUser ? const Color(0xFF222B45) : const Color(0xFF222B45),
+                                                                  fontSize: 16,
+                                                                  fontWeight: FontWeight.w500,
+                                                                ),
+                                                              ),
+                                                              const SizedBox(height: 8),
+                                                              Row(
+                                                                children: [
+                                                                  Text(
+                                                                    _formatTime(item.createdAt),
+                                                                    style: const TextStyle(
+                                                                      fontSize: 12,
+                                                                      color: Color(0xFF8F9BB3),
+                                                                    ),
+                                                                  ),
+                                                                  if (item.audioId.isNotEmpty) ...[
+                                                                    const SizedBox(width: 8),
+                                                                    const Icon(
+                                                                      Icons.audiotrack,
+                                                                      size: 14,
+                                                                      color: Color(0xFF8F9BB3),
+                                                                    ),
+                                                                  ],
+                                                                  if (item.macAddress.isNotEmpty) ...[
+                                                                    const SizedBox(width: 8),
+                                                                    const Icon(
+                                                                      Icons.devices,
+                                                                      size: 14,
+                                                                      color: Color(0xFF8F9BB3),
+                                                                    ),
+                                                                  ],
+                                                                ],
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    if (isUser) ...[
+                                                      // 用户头像
+                                                      Container(
+                                                        margin: const EdgeInsets.only(left: 8),
+                                                        child: const CircleAvatar(
+                                                          radius: 18,
+                                                          backgroundColor: Color(0xFF667EEA),
+                                                          child: Icon(
+                                                            Icons.person,
+                                                            color: Colors.white,
+                                                            size: 24,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      ),
+                          ),
+                        ],
+                      ),
               ),
             ),
           ],

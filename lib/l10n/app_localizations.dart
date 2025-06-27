@@ -227,7 +227,7 @@ abstract class AppLocalizations {
   /// App title
   ///
   /// In en, this message translates to:
-  /// **'Xiaozhi Manager'**
+  /// **'FP AI'**
   String get appTitle;
 
   /// Welcome message on login screen
