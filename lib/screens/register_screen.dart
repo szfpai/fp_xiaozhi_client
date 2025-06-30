@@ -116,7 +116,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (mounted) {
           // 跳转到登录界面
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (context) => const LoginScreen()),
+            MaterialPageRoute(builder: (context) => const LoginScreen(showWelcome: true,)),
           );
         }
       });

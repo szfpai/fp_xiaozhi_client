@@ -132,7 +132,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           children: [
             // 左侧会话列表
             Container(
-              width: 180,
+              width: 200,
               color: Colors.white.withOpacity(0.95),
               child: Column(
                 children: [
@@ -166,6 +166,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             fontSize: 14,
                             color: Color(0xFF8F9BB3),
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -183,6 +185,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                       '加载失败: $error',
                                       style: const TextStyle(color: Colors.red),
                                       textAlign: TextAlign.center,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 16),
                                     ElevatedButton(
@@ -200,6 +204,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                         color: Color(0xFF8F9BB3),
                                         fontSize: 16,
                                       ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   )
                                 : ListView.builder(
@@ -235,6 +241,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                               color: isSelected ? const Color(0xFF667EEA) : const Color(0xFF222B45),
                                             ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                           subtitle: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,10 +250,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                               Text(
                                                 '消息数: ${session.chatCount}',
                                                 style: const TextStyle(fontSize: 12),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
                                               Text(
                                                 _formatTime(session.createdAt),
                                                 style: const TextStyle(fontSize: 12),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
                                               ),
                                             ],
                                           ),

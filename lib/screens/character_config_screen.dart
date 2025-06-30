@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../data/agent.dart';
 import '../services/auth_service.dart';
 import '../services/home_service.dart';
+import '../services/agent_service.dart';
 
 class CharacterConfigScreen extends StatefulWidget {
   final String agentId;
@@ -15,7 +16,7 @@ class CharacterConfigScreen extends StatefulWidget {
 }
 
 class _CharacterConfigScreenState extends State<CharacterConfigScreen> {
-  Agent? _agent;
+  AgentDetail? _agent;
   bool _isLoading = true;
   String? _error;
 
@@ -46,15 +47,21 @@ class _CharacterConfigScreenState extends State<CharacterConfigScreen> {
   Future<void> _fetchAgentDetails() async {
     try {
       final authService = context.read<AuthService>();
-      final homeService = HomeService(authService: authService);
-      final agent = await homeService.getAgentDetails(widget.agentId);
-      if (mounted && agent != null) {
+      final agentService = AgentService(authService: authService);
+      final agent = await agentService.getAgentDetail(widget.agentId);
+      if (mounted) {
+        final voices = ['湾湾小何', '标准女声', '标准男声'];
+        final uniqueVoices = voices.toSet().toList();
+        String? initialVoice = agent.ttsVoice;
+        if (!voices.contains(initialVoice)) {
+          initialVoice = voices.isNotEmpty ? voices[0] : null;
+        }
         setState(() {
           _agent = agent;
           _assistantNameController.text = agent.assistantName;
           _characterIntroController.text = agent.character;
-          _selectedLanguage = _mapAgentLanguageToDropdown(agent.language);
-          _selectedVoice = agent.ttsVoice;   // Using getter method
+          _selectedLanguage = _mapAgentLanguageToDropdown(agent.languageDisplay);
+          _selectedVoice = initialVoice;
           _isLoading = false;
         });
       }
@@ -76,15 +83,14 @@ class _CharacterConfigScreenState extends State<CharacterConfigScreen> {
     final updatedAgent = Agent(
       id: _agent!.id,
       agentName: _agent!.agentName,
-      ttsModelName: _agent!.ttsModelName,
-      ttsVoiceName: _selectedVoice ?? _agent!.ttsVoiceName,
-      llmModelName: _agent!.llmModelName,
-      vllmModelName: _agent!.vllmModelName,
+      ttsModelName: _agent!.ttsModelId,
+      ttsVoiceName: _selectedVoice ?? _agent!.ttsVoiceId,
+      llmModelName: _agent!.llmModelId,
+      vllmModelName: _agent!.vllmModelId,
       memModelId: _agent!.memModelId,
       systemPrompt: _characterIntroController.text,
       summaryMemory: _agent!.summaryMemory,
-      lastConnectedAt: _agent!.lastConnectedAt,
-      deviceCount: _agent!.deviceCount,
+      deviceCount: 0
     );
 
     final authService = context.read<AuthService>();
@@ -116,43 +122,56 @@ class _CharacterConfigScreenState extends State<CharacterConfigScreen> {
             : IconButton(icon: const Icon(Icons.save), onPressed: _saveChanges),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(child: Text(_error!))
-              : _agent == null 
-                  ? const Center(child: Text('未找到智能体数据'))
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildSectionTitle('角色模板'),
-                          _buildCharacterTemplates(),
-                          const SizedBox(height: 24),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+          ),
+        ),
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+                ? Center(child: Text(_error!))
+                : _agent == null 
+                    ? const Center(child: Text('未找到智能体数据'))
+                    : SingleChildScrollView(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildSectionTitle('助手昵称'),
+                            _buildTextField(_assistantNameController),
+                            const SizedBox(height: 24),
 
-                          _buildSectionTitle('助手昵称'),
-                          _buildTextField(_assistantNameController),
-                          const SizedBox(height: 24),
-                          
-                          Row(
-                            children: [
-                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_buildSectionTitle('对话语言'), _buildLanguageDropdown()],)),
-                              const SizedBox(width: 16),
-                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_buildSectionTitle('角色音色'), _buildVoiceDropdown()],)),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
+                            _buildSectionTitle('角色模板'),
+                            _buildCharacterTemplates(),
+                            const SizedBox(height: 24),
 
-                          _buildSectionTitle('角色介绍'),
-                          _buildCharacterIntroductionField(),
-                          const SizedBox(height: 24),
+                            _buildSectionTitle('角色介绍'),
+                            _buildCharacterIntroductionField(),
+                            const SizedBox(height: 24),
 
-                          _buildSectionTitle('记忆体', actionWidget: TextButton(onPressed: (){}, child: const Text('清除记忆'))),
-                          _buildTextField(_memoryController, hint: '我还没有记忆。', enabled: false),
-                        ],
+                            _buildSectionTitle('记忆体', actionWidget: TextButton(onPressed: (){}, child: const Text('清除记忆'))),
+                            _buildTextField(_memoryController, hint: '我还没有记忆。', enabled: false),
+                            const SizedBox(height: 24),
+
+                            _buildSectionTitle('模型配置'),
+                            _buildModelConfigSection(_agent!),
+                            const SizedBox(height: 24),
+
+                            Row(
+                              children: [
+                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_buildSectionTitle('对话语言'), _buildLanguageDropdown()],)),
+                                const SizedBox(width: 16),
+                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_buildSectionTitle('角色音色'), _buildVoiceDropdown()],)),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+      ),
     );
   }
 
@@ -215,9 +234,10 @@ class _CharacterConfigScreenState extends State<CharacterConfigScreen> {
   Widget _buildVoiceDropdown() {
     // Mock data
     final voices = ['湾湾小何', '标准女声', '标准男声'];
+    final uniqueVoices = voices.toSet().toList();
      return DropdownButtonFormField<String>(
       value: _selectedVoice,
-      items: voices.map((voice) => DropdownMenuItem(value: voice, child: Text(voice))).toList(),
+      items: uniqueVoices.map((voice) => DropdownMenuItem(value: voice, child: Text(voice))).toList(),
       onChanged: (value) => setState(() => _selectedVoice = value),
       decoration: InputDecoration(
         border: const OutlineInputBorder(),
@@ -236,6 +256,167 @@ class _CharacterConfigScreenState extends State<CharacterConfigScreen> {
         border: OutlineInputBorder(),
         hintText: '详细描述角色的背景、性格、说话风格等...',
       ),
+    );
+  }
+
+  Widget _buildModelConfigSection(AgentDetail agent) {
+    // 这里用mock数据，实际可用接口数据
+    final vadModels = [agent.vadModelId];
+    final asrModels = [agent.asrModelId];
+    final llmModels = [agent.llmModelId];
+    final vllmModels = [agent.vllmModelId];
+    final intentModels = [agent.intentModelId];
+    final memoryModels = [agent.memModelId];
+    final ttsModels = [agent.ttsModelId];
+    final ttsVoices = [agent.ttsVoiceId];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // VAD + ASR
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('语音活动检测(VAD)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButtonFormField<String>(
+                      value: agent.vadModelId,
+                      items: vadModels.toSet().map((id) => DropdownMenuItem(value: id, child: Text(id))).toList(),
+                      onChanged: (value) {},
+                      decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('语音识别(ASR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButtonFormField<String>(
+                      value: agent.asrModelId,
+                      items: asrModels.toSet().map((id) => DropdownMenuItem(value: id, child: Text(id))).toList(),
+                      onChanged: (value) {},
+                      decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        // LLM
+        const Text('大语言模型(LLM)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: DropdownButtonFormField<String>(
+            value: agent.llmModelId,
+            items: llmModels.toSet().map((id) => DropdownMenuItem(value: id, child: Text(id))).toList(),
+            onChanged: (value) {},
+            decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+          ),
+        ),
+        const SizedBox(height: 20),
+        // VLLM
+        const Text('视觉大模型(VLLM)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: DropdownButtonFormField<String>(
+            value: agent.vllmModelId,
+            items: vllmModels.toSet().map((id) => DropdownMenuItem(value: id, child: Text(id))).toList(),
+            onChanged: (value) {},
+            decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+          ),
+        ),
+        const SizedBox(height: 20),
+        // Intent
+        const Text('意图识别(Intent)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: DropdownButtonFormField<String>(
+            value: agent.intentModelId,
+            items: intentModels.toSet().map((id) => DropdownMenuItem(value: id, child: Text(id))).toList(),
+            onChanged: (value) {},
+            decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+          ),
+        ),
+        const SizedBox(height: 20),
+        // Memory
+        const Text('记忆(Memory)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: DropdownButtonFormField<String>(
+            value: agent.memModelId,
+            items: memoryModels.toSet().map((id) => DropdownMenuItem(value: id, child: Text(id))).toList(),
+            onChanged: (value) {},
+            decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+          ),
+        ),
+        const SizedBox(height: 20),
+        // TTS
+        const Text('语音合成(TTS)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: DropdownButtonFormField<String>(
+            value: agent.ttsModelId,
+            items: ttsModels.toSet().map((id) => DropdownMenuItem(value: id, child: Text(id))).toList(),
+            onChanged: (value) {},
+            decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+          ),
+        ),
+        const SizedBox(height: 20),
+        // TTS Voice
+        const Text('角色音色', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: DropdownButtonFormField<String>(
+            value: agent.ttsVoiceId,
+            items: ttsVoices.toSet().map((id) => DropdownMenuItem(value: id, child: Text(id))).toList(),
+            onChanged: (value) {},
+            decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+          ),
+        ),
+      ],
     );
   }
 

@@ -9,6 +9,8 @@ import 'voiceprint_screen.dart';
 import 'history_screen.dart';
 import 'device_binding_screen.dart';
 import 'add_agent_screen.dart';
+import 'my_page_screen.dart';
+import 'more_fun_screen.dart';
 
 // 功能项数据结构
 class HomeFeature {
@@ -151,8 +153,12 @@ class _HomeScreenState extends State<HomeScreen> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _showLogoutDialog(context),
+            icon: const Icon(Icons.person_outline),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (context) => const MyPageScreen()),
+              );
+            },
           ),
         ],
       ),
@@ -329,9 +335,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildConfigGrid({required Agent agent}) {
     final List<Map<String, dynamic>> configs = [
       {'text': '配置角色', 'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (context) => CharacterConfigScreen(agentId: agent.id)))},
-      {'text': '声纹识别', 'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (context) => VoiceprintScreen(agentId: agent.id)))},
       {'text': '历史对话', 'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (context) => HistoryScreen(agentId: agent.id)))},
       {'text': '绑定设备', 'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (context) => DeviceBindingScreen(agentId: agent.id)))},
+      {'text': '更多玩法', 'onTap': () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MoreFunScreen()))},
     ];
     final double screenWidth = MediaQuery.of(context).size.width;
     final double spacing = screenWidth * 0.05;

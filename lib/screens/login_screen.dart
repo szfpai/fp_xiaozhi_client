@@ -9,7 +9,8 @@ import 'register_screen.dart';
 import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final bool showWelcome;
+  const LoginScreen({super.key, this.showWelcome = false});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -40,7 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
         } else {
           // 显示欢迎消息（如果是从注册页面跳转过来的）
           setState(() {
-            _showWelcomeMessage = true;
+            _showWelcomeMessage = widget.showWelcome;
           });
           
           // 3秒后隐藏欢迎消息

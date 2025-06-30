@@ -187,6 +187,29 @@ class AgentService {
       rethrow;
     }
   }
+
+  /// Agent 详情数据模型
+  Future<AgentDetail> getAgentDetail(String id) async {
+    final token = await authService.getToken();
+    if (token == null) {
+      throw Exception('用户未登录');
+    }
+    final url = Uri.parse('${AppConfig.baseUrl}/xiaozhi/agent/$id');
+    try {
+      final response = await http.get(url, headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      });
+      final data = json.decode(utf8.decode(response.bodyBytes));
+      if (response.statusCode == 200 && data['code'] == 0) {
+        return AgentDetail.fromJson(data['data'] ?? {});
+      } else {
+        throw Exception('获取Agent详情失败: \\${data['msg'] ?? response.body}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
 }
 
 /// 会话列表响应数据模型
@@ -327,180 +350,117 @@ class ChatMessage {
   }
 }
 
-/*
-使用示例：
+/// Agent 详情数据模型
+class AgentDetail {
+  final String id;
+  final String userId;
+  final String agentCode;
+  final String agentName;
+  final String asrModelId;
+  final String vadModelId;
+  final String llmModelId;
+  final String vllmModelId;
+  final String ttsModelId;
+  final String ttsVoiceId;
+  final String memModelId;
+  final String intentModelId;
+  final int chatHistoryConf;
+  final String systemPrompt;
+  final String summaryMemory;
+  final String langCode;
+  final String language;
+  final int sort;
+  final String creator;
+  final String createdAt;
+  final String updater;
+  final String updatedAt;
+  final List<AgentFunction> functions;
 
-// 在 Widget 中使用 getSessionList 接口
-class SessionListScreen extends StatefulWidget {
-  final String agentId;
-  
-  const SessionListScreen({Key? key, required this.agentId}) : super(key: key);
-  
-  @override
-  State<SessionListScreen> createState() => _SessionListScreenState();
+  AgentDetail({
+    required this.id,
+    required this.userId,
+    required this.agentCode,
+    required this.agentName,
+    required this.asrModelId,
+    required this.vadModelId,
+    required this.llmModelId,
+    required this.vllmModelId,
+    required this.ttsModelId,
+    required this.ttsVoiceId,
+    required this.memModelId,
+    required this.intentModelId,
+    required this.chatHistoryConf,
+    required this.systemPrompt,
+    required this.summaryMemory,
+    required this.langCode,
+    required this.language,
+    required this.sort,
+    required this.creator,
+    required this.createdAt,
+    required this.updater,
+    required this.updatedAt,
+    required this.functions,
+  });
+
+  factory AgentDetail.fromJson(Map<String, dynamic> json) {
+    return AgentDetail(
+      id: json['id']?.toString() ?? '',
+      userId: json['userId']?.toString() ?? '',
+      agentCode: json['agentCode']?.toString() ?? '',
+      agentName: json['agentName']?.toString() ?? '',
+      asrModelId: json['asrModelId']?.toString() ?? '',
+      vadModelId: json['vadModelId']?.toString() ?? '',
+      llmModelId: json['llmModelId']?.toString() ?? '',
+      vllmModelId: json['vllmModelId']?.toString() ?? '',
+      ttsModelId: json['ttsModelId']?.toString() ?? '',
+      ttsVoiceId: json['ttsVoiceId']?.toString() ?? '',
+      memModelId: json['memModelId']?.toString() ?? '',
+      intentModelId: json['intentModelId']?.toString() ?? '',
+      chatHistoryConf: int.tryParse(json['chatHistoryConf']?.toString() ?? '') ?? 0,
+      systemPrompt: json['systemPrompt']?.toString() ?? '',
+      summaryMemory: json['summaryMemory']?.toString() ?? '',
+      langCode: json['langCode']?.toString() ?? '',
+      language: json['language']?.toString() ?? '',
+      sort: int.tryParse(json['sort']?.toString() ?? '') ?? 0,
+      creator: json['creator']?.toString() ?? '',
+      createdAt: json['createdAt']?.toString() ?? '',
+      updater: json['updater']?.toString() ?? '',
+      updatedAt: json['updatedAt']?.toString() ?? '',
+      functions: (json['functions'] as List? ?? []).map((e) => AgentFunction.fromJson(e)).toList(),
+    );
+  }
+
+  // 兼容Agent的getter
+  String get assistantName => agentName;
+  String get character => systemPrompt;
+  String get ttsVoice => ttsVoiceId.isNotEmpty ? ttsVoiceId : ttsModelId;
+  String get languageDisplay => language.isNotEmpty ? language : '中文';
+  String get langCodeDisplay => langCode.isNotEmpty ? langCode : 'zh';
+  String? get memory => summaryMemory;
 }
 
-class _SessionListScreenState extends State<SessionListScreen> {
-  List<Session> sessions = [];
-  bool isLoading = true;
-  String? error;
-  
-  @override
-  void initState() {
-    super.initState();
-    _loadSessions();
-  }
-  
-  Future<void> _loadSessions() async {
-    try {
-      final authService = context.read<AuthService>();
-      final agentService = AgentService(authService: authService);
-      final response = await agentService.getSessionList(widget.agentId);
-      
-      setState(() {
-        sessions = response.list;
-        isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        error = e.toString();
-        isLoading = false;
-      });
-    }
-  }
-  
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('会话列表')),
-      body: isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : error != null
-          ? Center(child: Text('错误: $error'))
-          : ListView.builder(
-              itemCount: sessions.length,
-              itemBuilder: (context, index) {
-                final session = sessions[index];
-                return ListTile(
-                  title: Text('会话 ${session.sessionId}'),
-                  subtitle: Text('创建时间: ${session.createdAt}'),
-                  trailing: Text('消息数: ${session.chatCount}'),
-                  onTap: () {
-                    // 跳转到聊天历史页面
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => ChatHistoryScreen(
-                          agentId: widget.agentId,
-                          sessionId: session.sessionId,
-                        ),
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+class AgentFunction {
+  final String id;
+  final String agentId;
+  final String pluginId;
+  final String paramInfo;
+  final String providerCode;
+
+  AgentFunction({
+    required this.id,
+    required this.agentId,
+    required this.pluginId,
+    required this.paramInfo,
+    required this.providerCode,
+  });
+
+  factory AgentFunction.fromJson(Map<String, dynamic> json) {
+    return AgentFunction(
+      id: json['id']?.toString() ?? '',
+      agentId: json['agentId']?.toString() ?? '',
+      pluginId: json['pluginId']?.toString() ?? '',
+      paramInfo: json['paramInfo']?.toString() ?? '',
+      providerCode: json['providerCode']?.toString() ?? '',
     );
   }
 }
-
-// 在 Widget 中使用 getChatHistory 接口
-class ChatHistoryScreen extends StatefulWidget {
-  final String agentId;
-  final String sessionId;
-  
-  const ChatHistoryScreen({
-    Key? key, 
-    required this.agentId, 
-    required this.sessionId,
-  }) : super(key: key);
-  
-  @override
-  State<ChatHistoryScreen> createState() => _ChatHistoryScreenState();
-}
-
-class _ChatHistoryScreenState extends State<ChatHistoryScreen> {
-  List<ChatHistoryItem> chatHistory = [];
-  bool isLoading = true;
-  String? error;
-  
-  @override
-  void initState() {
-    super.initState();
-    _loadChatHistory();
-  }
-  
-  Future<void> _loadChatHistory() async {
-    try {
-      final authService = context.read<AuthService>();
-      final agentService = AgentService(authService: authService);
-      final history = await agentService.getChatHistory(widget.agentId, widget.sessionId);
-      
-      setState(() {
-        chatHistory = history;
-        isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        error = e.toString();
-        isLoading = false;
-      });
-    }
-  }
-  
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('聊天历史 - ${widget.sessionId}')),
-      body: isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : error != null
-          ? Center(child: Text('错误: $error'))
-          : ListView.builder(
-              itemCount: chatHistory.length,
-              itemBuilder: (context, index) {
-                final item = chatHistory[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: item.isUserMessage ? Colors.blue : Colors.green,
-                      child: Icon(
-                        item.isUserMessage ? Icons.person : Icons.smart_toy,
-                        color: Colors.white,
-                      ),
-                    ),
-                    title: Text(
-                      item.isUserMessage ? '用户' : 'AI助手',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(item.content),
-                        const SizedBox(height: 4),
-                        Text(
-                          '时间: ${item.createdAt}',
-                          style: const TextStyle(fontSize: 12, color: Colors.grey),
-                        ),
-                        if (item.audioId.isNotEmpty)
-                          Text(
-                            '音频ID: ${item.audioId}',
-                            style: const TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                        if (item.macAddress.isNotEmpty)
-                          Text(
-                            '设备: ${item.macAddress}',
-                            style: const TextStyle(fontSize: 12, color: Colors.grey),
-                          ),
-                      ],
-                    ),
-                    isThreeLine: true,
-                  ),
-                );
-              },
-            ),
-    );
-  }
-}
-*/ 
